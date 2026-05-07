@@ -1,0 +1,14 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "live-captions",
+  "outputfilename": "live-captions",
+  "frontend": {
+    "dir": "frontend",
+    "install": "",
+    "build": "",
+    "dev": "wails dev"
+  },
+  "author": {
+    "name": "Jiawei"
+  }
+}
