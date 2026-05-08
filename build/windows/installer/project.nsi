@@ -58,6 +58,11 @@ ManifestDPIAware true
 
 !insertmacro MUI_PAGE_WELCOME # Welcome to the installer page.
 # !insertmacro MUI_PAGE_LICENSE "resources\eula.txt" # Adds a EULA page to the installer
+
+# --- ADDED: This turns on the Checkbox Components page! ---
+!insertmacro MUI_PAGE_COMPONENTS 
+# ----------------------------------------------------------
+
 !insertmacro MUI_PAGE_DIRECTORY # In which folder install page.
 !insertmacro MUI_PAGE_INSTFILES # Installing page.
 !insertmacro MUI_PAGE_FINISH # Finished installation page.
@@ -79,24 +84,38 @@ Function .onInit
    !insertmacro wails.checkArchitecture
 FunctionEnd
 
-Section
+# --- MODIFIED: Named the main section and added the DLLs ---
+Section "Live Captions Core" SEC01
+    SectionIn RO # RO means "Read Only" - the user CANNOT uncheck the main app!
+    
     !insertmacro wails.setShellContext
-
     !insertmacro wails.webview2runtime
-
     SetOutPath $INSTDIR
 
     !insertmacro wails.files
+    
+    # Grab the Vosk Helper DLLs from your bin folder!
+    File "..\..\bin\*.dll"
 
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
     CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
 
     !insertmacro wails.associateFiles
     !insertmacro wails.associateCustomProtocols
-
     !insertmacro wails.writeUninstaller
 SectionEnd
 
+# --- ADDED: The Optional FFmpeg Audio Engine Component ---
+Section "FFmpeg Audio Engine" SEC_FFMPEG
+    SetOutPath $INSTDIR
+    # Grab FFmpeg from your bin folder!
+    File "..\..\bin\ffmpeg.exe"
+SectionEnd
+
+# --- NOTE ABOUT UNINSTALLER ---
+# Because Wails uses "RMDir /r $INSTDIR" down below, it recursively deletes 
+# the ENTIRE installation folder. That means it will automatically delete 
+# the DLLs and FFmpeg safely without us having to write extra delete code!
 Section "uninstall"
     !insertmacro wails.setShellContext
 

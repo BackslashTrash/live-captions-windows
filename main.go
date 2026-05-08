@@ -104,7 +104,16 @@ func changeModel(modelPath string) error {
 	return nil
 }
 
-func extractZip(zipPath string) error {
+// NEW: This tells the app to use your secure Windows AppData folder!
+func getModelsDir() string {
+	configDir, err := os.UserConfigDir() // Gets C:\Users\YourName\AppData\Roaming
+	if err != nil {
+		return "models" 
+	}
+	return filepath.Join(configDir, "LiveCaptions", "models")
+}
+
+func extractZip(zipPath string, destDir string) error {
 	r, err := zip.OpenReader(zipPath)
 	if err != nil {
 		return err
@@ -112,7 +121,7 @@ func extractZip(zipPath string) error {
 	defer r.Close()
 
 	for _, f := range r.File {
-		fpath := filepath.Join("models", f.Name)
+		fpath := filepath.Join(destDir, f.Name)
 		if f.FileInfo().IsDir() {
 			os.MkdirAll(fpath, os.ModePerm)
 			continue
@@ -134,8 +143,9 @@ func extractZip(zipPath string) error {
 
 func downloadAndExtract(lang string) error {
 	info := voskModels[lang]
-	os.MkdirAll("models", os.ModePerm)
-	zipPath := filepath.Join("models", info.Folder+".zip")
+	modelsDir := getModelsDir()
+	os.MkdirAll(modelsDir, os.ModePerm)
+	zipPath := filepath.Join(modelsDir, info.Folder+".zip")
 
 	resp, err := http.Get(info.URL)
 	if err != nil {
@@ -157,7 +167,7 @@ func downloadAndExtract(lang string) error {
 	}
 
 	runtime.EventsEmit(appCtx, "download_progress", 100) 
-	err = extractZip(zipPath)
+	err = extractZip(zipPath, modelsDir)
 	if err != nil {
 		return err
 	}
@@ -207,7 +217,7 @@ func main() {
 	err := wails.Run(&options.App{
 		Title:            "Live Captions",
 		Width:            900,
-		Height:           140, // <-- INCREASED DEFAULT HEIGHT!
+		Height:           140,
 		AlwaysOnTop:      true,
 		Frameless:        true,
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0},
@@ -225,7 +235,7 @@ func main() {
 				time.Sleep(500 * time.Millisecond)
 				defaultLang := "English"
 				info := voskModels[defaultLang]
-				modelPath := filepath.Join("models", info.Folder)
+				modelPath := filepath.Join(getModelsDir(), info.Folder)
 
 				if _, err := os.Stat(modelPath); os.IsNotExist(err) {
 					runtime.EventsEmit(ctx, "download_started", defaultLang)
@@ -249,7 +259,7 @@ func main() {
 						info, exists := voskModels[lang]
 						if !exists { return }
 						
-						modelPath := filepath.Join("models", info.Folder)
+						modelPath := filepath.Join(getModelsDir(), info.Folder)
 
 						if _, err := os.Stat(modelPath); os.IsNotExist(err) {
 							runtime.EventsEmit(ctx, "download_started", lang)
@@ -269,7 +279,7 @@ func main() {
 					}()
 				}
 			})
-			// THE FIX: Smart Folder Path Creation
+
 			runtime.EventsOn(ctx, "save_transcript", func(optionalData ...interface{}) {
 				if len(optionalData) >= 2 {
 					folderPath := optionalData[0].(string)
@@ -292,7 +302,6 @@ func main() {
 				}
 			})
 
-			// NEW: Audio File Transcription logic using FFmpeg
 			runtime.EventsOn(ctx, "select_audio_file", func(optionalData ...interface{}) {
 				go func() {
 					runtime.WindowSetAlwaysOnTop(ctx, false)
@@ -316,18 +325,21 @@ func main() {
 
 					runtime.EventsEmit(ctx, "file_transcribe_start")
 
-					// 1. Use FFmpeg to invisibly convert any audio into 16kHz Mono PCM bytes
-					cmd := exec.Command("ffmpeg", "-y", "-i", audioPath, "-ar", "16000", "-ac", "1", "-f", "s16le", "-")
+					// BUNDLED FFMPEG FIX: Find the local ffmpeg.exe sitting next to the app
+					exeLocation, _ := os.Executable()
+					exeDir := filepath.Dir(exeLocation)
+					ffmpegPath := filepath.Join(exeDir, "ffmpeg.exe")
+
+					cmd := exec.Command(ffmpegPath, "-y", "-i", audioPath, "-ar", "16000", "-ac", "1", "-f", "s16le", "-")
 					var out bytes.Buffer
 					cmd.Stdout = &out
 					err := cmd.Run()
 					if err != nil {
-						runtime.EventsEmit(ctx, "file_transcribe_error", "FFmpeg missing! Please install FFmpeg and add it to your Windows PATH to process files.")
+						runtime.EventsEmit(ctx, "file_transcribe_error", "FFmpeg missing! Please run the installer to include the FFmpeg Audio Engine.")
 						return
 					}
 					audioData := out.Bytes()
 
-					// 2. Temporarily clone the AI brain so we don't interrupt the live mic
 					sttMutex.Lock()
 					if model == nil {
 						sttMutex.Unlock()
@@ -343,7 +355,6 @@ func main() {
 					}
 					defer fileRec.Free()
 
-					// 3. Process the audio at maximum CPU speed
 					var fullTranscript string
 					chunkSize := 4000
 					for i := 0; i < len(audioData); i += chunkSize {
@@ -365,7 +376,6 @@ func main() {
 						fullTranscript += vFinal.Text
 					}
 
-					// 4. Save file directly to the Transcriptions folder
 					docs, err := os.UserHomeDir()
 					folderPath := "Transcriptions"
 					if err == nil {
