@@ -47,7 +47,7 @@
       transition: background 0.2s, color 0.2s;
     }
 
-    #settings-btn:hover, #record-btn:hover { background: rgba(0, 0, 0, 0.1); color: black; }
+    #settings-btn:hover, #record-btn:hover, #minimize-btn:hover { background: rgba(0, 0, 0, 0.1); color: black; }
     #close-btn:hover { background: rgba(255, 60, 60, 0.8); color: white; }
 
     .window-controls { display: flex; align-items: center; gap: 4px; }
@@ -80,11 +80,11 @@
     /* THE SETTINGS MENU */
     #settings-window {
       position: absolute;
-      top: 110px;
+      top: 140px; /* Shifted down to accommodate the new 140px default height! */
       left: 50%;
       transform: translateX(-50%);
       width: 650px;
-      max-height: calc(100vh - 130px);
+      max-height: calc(100vh - 160px);
       overflow-y: auto;
       background: rgba(245, 245, 245, 0.98);
       border-radius: 12px;
@@ -134,7 +134,6 @@
     .setting-card label { font-size: 14px; color: #444; font-weight: 600; }
     .setting-card input[type="range"] { width: 100%; cursor: pointer; }
     
-    /* Removed readonly styling, made it look like a text input field */
     #save-folder { width: 100%; background: #fff; border: 1px solid #ccc; color: #000; padding: 8px 10px; border-radius: 4px; font-size: 13px; outline: none; }
     #save-folder:focus { border-color: #0078d4; }
 
@@ -152,7 +151,7 @@
     body.dark-mode #top-bar { background: rgba(255, 255, 255, 0.05); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
     body.dark-mode #drag-handle { color: rgba(255, 255, 255, 0.5); }
     body.dark-mode button { color: rgba(255, 255, 255, 0.7); }
-    body.dark-mode #settings-btn:hover, body.dark-mode #record-btn:hover { background: rgba(255, 255, 255, 0.15); color: white; }
+    body.dark-mode #settings-btn:hover, body.dark-mode #record-btn:hover, body.dark-mode #minimize-btn:hover { background: rgba(255, 255, 255, 0.15); color: white; }
     body.dark-mode #caption { color: #ffffff; }
 
     body.dark-mode #settings-window { background: rgba(30, 30, 30, 0.98); border: 1px solid rgba(255, 255, 255, 0.15); color: white; box-shadow: 0 16px 40px rgba(0,0,0,0.6); }
@@ -169,6 +168,7 @@
     body.dark-mode .progress-track { background: rgba(255,255,255,0.1); }
     body.dark-mode #download-text { color: #4daafc; }
     body.dark-mode #download-bar { background: #4daafc; }
+    body.dark-mode #file-transcribe-status { color: #cccccc !important; }
   </style>
 </head>
 <body>
@@ -183,6 +183,8 @@
           </svg>
         </button>
         <button type="button" id="settings-btn" title="Open Settings"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
+        <!-- NEW: Minimize Button added exactly here -->
+        <button type="button" id="minimize-btn" title="Minimize App"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
         <button type="button" id="close-btn" title="Quit App"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
     </div>
@@ -193,7 +195,7 @@
 
   <div id="settings-window">
     <div class="settings-header">
-      <span>⚙️ Settings & Features</span>
+      <span>Settings</span>
       <button type="button" id="close-settings-btn" title="Close Settings">✖</button>
     </div>
     
@@ -206,6 +208,12 @@
           <option value="Spanish">Spanish</option>
           <option value="French">French</option>
           <option value="German">German</option>
+          <option value="Italian">Italian</option>
+          <option value="Portuguese">Portuguese</option>
+          <option value="Russian">Russian</option>
+          <option value="Chinese">Chinese (Mandarin)</option>
+          <option value="Japanese">Japanese</option>
+          <option value="Hindi">Hindi</option>
         </select>
         
         <div id="download-progress-container">
@@ -229,11 +237,20 @@
         <input type="range" id="font-size" min="16" max="40" value="24">
       </div>
       
-      <!-- FIXED: Removed the Browse button completely. Input is now fully editable. -->
       <div class="setting-card" style="grid-column: span 2;">
         <label>Transcription Save Folder Path</label>
         <input type="text" id="save-folder" placeholder="Leave blank to use default: Documents/Transcriptions">
       </div>
+
+      <!-- NEW: File Upload Section -->
+      <div class="setting-card" style="grid-column: span 2;">
+        <label>Transcribe Audio File</label>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <button type="button" id="upload-audio-btn" style="padding: 8px 16px; background: #0078d4; color: white; border-radius: 6px; font-weight: 600; font-size: 13px;">Upload Audio (.mp3, .wav, .m4a)</button>
+          <span id="file-transcribe-status" style="font-size: 13px; color: #666; font-weight: 500;">Ready</span>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -245,11 +262,9 @@
     let isRecording = false;
     let transcriptBuffer = "";
     
-    // Load saved folder, leave blank if there isn't one
     let saveFolder = localStorage.getItem('transcriptFolder') || "";
     document.getElementById('save-folder').value = saveFolder;
 
-    // Save the folder path whenever the user types something
     document.getElementById('save-folder').addEventListener('input', (e) => {
         saveFolder = e.target.value.trim();
         localStorage.setItem('transcriptFolder', saveFolder);
@@ -305,6 +320,40 @@
         captionEl.textContent = "Listening in " + currentLang + "...";
     });
 
+    // --- AUDIO FILE UPLOAD LOGIC ---
+    const uploadBtn = document.getElementById('upload-audio-btn');
+    const fileStatus = document.getElementById('file-transcribe-status');
+
+    uploadBtn.onclick = () => {
+        window.runtime.EventsEmit("select_audio_file");
+    };
+
+    window.runtime.EventsOn("audio_file_selected", (filePath) => {
+        window.runtime.EventsEmit("transcribe_audio_file", filePath);
+    });
+
+    window.runtime.EventsOn("file_transcribe_start", () => {
+        uploadBtn.disabled = true;
+        uploadBtn.style.opacity = "0.6";
+        fileStatus.style.color = "#0078d4";
+        fileStatus.textContent = "Converting and Transcribing... (This may take a minute)";
+    });
+
+    window.runtime.EventsOn("file_transcribe_done", (savedPath) => {
+        uploadBtn.disabled = false;
+        uploadBtn.style.opacity = "1";
+        fileStatus.style.color = "#107c10"; // Green success text
+        fileStatus.textContent = "Done! Saved to: " + savedPath;
+        setTimeout(() => { fileStatus.textContent = "Ready"; fileStatus.style.color = "#666"; }, 8000);
+    });
+
+    window.runtime.EventsOn("file_transcribe_error", (errMsg) => {
+        uploadBtn.disabled = false;
+        uploadBtn.style.opacity = "1";
+        fileStatus.style.color = "#d13438"; // Red error text
+        fileStatus.textContent = "Error occurred.";
+        alert(errMsg);
+    });
 
     // --- LIGHT / NIGHT MODE LOGIC ---
     const nightModeToggle = document.getElementById('night-mode-toggle');
@@ -415,7 +464,7 @@
 
     document.getElementById('close-settings-btn').onclick = () => {
       settingsWindow.style.display = 'none';
-      if (window.runtime && window.runtime.WindowSetSize) window.runtime.WindowSetSize(900, 110); 
+      if (window.runtime && window.runtime.WindowSetSize) window.runtime.WindowSetSize(900, 140); // Snaps back to new default height
     };
 
     document.getElementById('font-size').oninput = (e) => {
@@ -423,6 +472,8 @@
       document.getElementById('font-size-val').textContent = e.target.value;
     };
 
+    // Window controls
+    document.getElementById('minimize-btn').onclick = () => window.runtime.WindowMinimise();
     document.getElementById('close-btn').onclick = () => window.runtime.Quit();
   </script>
 </body>

@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 	"time"
@@ -48,10 +49,16 @@ var voskModels = map[string]struct {
 	Folder string
 	URL    string
 }{
-	"English": {"vosk-model-small-en-us-0.15", "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip"},
-	"Spanish": {"vosk-model-small-es-0.42", "https://alphacephei.com/vosk/models/vosk-model-small-es-0.42.zip"},
-	"French":  {"vosk-model-small-fr-0.22", "https://alphacephei.com/vosk/models/vosk-model-small-fr-0.22.zip"},
-	"German":  {"vosk-model-small-de-0.15", "https://alphacephei.com/vosk/models/vosk-model-small-de-0.15.zip"},
+	"English":    {"vosk-model-small-en-us-0.15", "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip"},
+	"Spanish":    {"vosk-model-small-es-0.42", "https://alphacephei.com/vosk/models/vosk-model-small-es-0.42.zip"},
+	"French":     {"vosk-model-small-fr-0.22", "https://alphacephei.com/vosk/models/vosk-model-small-fr-0.22.zip"},
+	"German":     {"vosk-model-small-de-0.15", "https://alphacephei.com/vosk/models/vosk-model-small-de-0.15.zip"},
+	"Italian":    {"vosk-model-small-it-0.22", "https://alphacephei.com/vosk/models/vosk-model-small-it-0.22.zip"},
+	"Portuguese": {"vosk-model-small-pt-0.3", "https://alphacephei.com/vosk/models/vosk-model-small-pt-0.3.zip"},
+	"Russian":    {"vosk-model-small-ru-0.22", "https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip"},
+	"Chinese":    {"vosk-model-small-cn-0.22", "https://alphacephei.com/vosk/models/vosk-model-small-cn-0.22.zip"},
+	"Japanese":   {"vosk-model-small-ja-0.22", "https://alphacephei.com/vosk/models/vosk-model-small-ja-0.22.zip"},
+	"Hindi":      {"vosk-model-small-hi-0.22", "https://alphacephei.com/vosk/models/vosk-model-small-hi-0.22.zip"},
 }
 
 type progressWriter struct {
@@ -200,7 +207,7 @@ func main() {
 	err := wails.Run(&options.App{
 		Title:            "Live Captions",
 		Width:            900,
-		Height:           110,
+		Height:           140, // <-- INCREASED DEFAULT HEIGHT!
 		AlwaysOnTop:      true,
 		Frameless:        true,
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0},
@@ -262,31 +269,116 @@ func main() {
 					}()
 				}
 			})
-
 			// THE FIX: Smart Folder Path Creation
 			runtime.EventsOn(ctx, "save_transcript", func(optionalData ...interface{}) {
 				if len(optionalData) >= 2 {
 					folderPath := optionalData[0].(string)
 					content := optionalData[1].(string)
 					
-					// If user left box blank, default to Documents/Transcriptions
 					if folderPath == "" {
 						docs, err := os.UserHomeDir()
 						if err == nil {
 							folderPath = filepath.Join(docs, "Documents", "Transcriptions")
 						} else {
-							folderPath = "Transcriptions" // Extreme failsafe
+							folderPath = "Transcriptions" 
 						}
 					}
 
 					currentTime := time.Now().Format("2006-01-02_15-04-05")
 					fullPath := filepath.Join(folderPath, "Transcription_"+currentTime+".txt")
 					
-					// If the folder they typed doesn't exist, this automatically creates it!
 					os.MkdirAll(folderPath, os.ModePerm)
-					
 					os.WriteFile(fullPath, []byte(content), 0644)
 				}
+			})
+
+			// NEW: Audio File Transcription logic using FFmpeg
+			runtime.EventsOn(ctx, "select_audio_file", func(optionalData ...interface{}) {
+				go func() {
+					runtime.WindowSetAlwaysOnTop(ctx, false)
+					file, err := runtime.OpenFileDialog(ctx, runtime.OpenDialogOptions{
+						Title: "Select Audio File",
+						Filters: []runtime.FileFilter{
+							{DisplayName: "Audio Files", Pattern: "*.mp3;*.wav;*.m4a;*.flac;*.ogg"},
+						},
+					})
+					runtime.WindowSetAlwaysOnTop(ctx, true)
+					if err == nil && file != "" {
+						runtime.EventsEmit(ctx, "audio_file_selected", file)
+					}
+				}()
+			})
+
+			runtime.EventsOn(ctx, "transcribe_audio_file", func(optionalData ...interface{}) {
+				go func() {
+					if len(optionalData) == 0 { return }
+					audioPath := optionalData[0].(string)
+
+					runtime.EventsEmit(ctx, "file_transcribe_start")
+
+					// 1. Use FFmpeg to invisibly convert any audio into 16kHz Mono PCM bytes
+					cmd := exec.Command("ffmpeg", "-y", "-i", audioPath, "-ar", "16000", "-ac", "1", "-f", "s16le", "-")
+					var out bytes.Buffer
+					cmd.Stdout = &out
+					err := cmd.Run()
+					if err != nil {
+						runtime.EventsEmit(ctx, "file_transcribe_error", "FFmpeg missing! Please install FFmpeg and add it to your Windows PATH to process files.")
+						return
+					}
+					audioData := out.Bytes()
+
+					// 2. Temporarily clone the AI brain so we don't interrupt the live mic
+					sttMutex.Lock()
+					if model == nil {
+						sttMutex.Unlock()
+						runtime.EventsEmit(ctx, "file_transcribe_error", "Vosk model not loaded yet.")
+						return
+					}
+					fileRec, err := vosk.NewRecognizer(model, sampleRate)
+					sttMutex.Unlock()
+
+					if err != nil {
+						runtime.EventsEmit(ctx, "file_transcribe_error", "Failed to initialize offline recognizer.")
+						return
+					}
+					defer fileRec.Free()
+
+					// 3. Process the audio at maximum CPU speed
+					var fullTranscript string
+					chunkSize := 4000
+					for i := 0; i < len(audioData); i += chunkSize {
+						end := i + chunkSize
+						if end > len(audioData) {
+							end = len(audioData)
+						}
+						if fileRec.AcceptWaveform(audioData[i:end]) == 1 {
+							var vRes VoskResult
+							json.Unmarshal([]byte(fileRec.Result()), &vRes)
+							if vRes.Text != "" {
+								fullTranscript += vRes.Text + " "
+							}
+						}
+					}
+					var vFinal VoskResult
+					json.Unmarshal([]byte(fileRec.FinalResult()), &vFinal)
+					if vFinal.Text != "" {
+						fullTranscript += vFinal.Text
+					}
+
+					// 4. Save file directly to the Transcriptions folder
+					docs, err := os.UserHomeDir()
+					folderPath := "Transcriptions"
+					if err == nil {
+						folderPath = filepath.Join(docs, "Documents", "Transcriptions")
+					}
+					os.MkdirAll(folderPath, os.ModePerm)
+					
+					currentTime := time.Now().Format("2006-01-02_15-04-05")
+					filename := filepath.Join(folderPath, "File_Transcription_"+currentTime+".txt")
+					os.WriteFile(filename, []byte(fullTranscript), 0644)
+
+					runtime.EventsEmit(ctx, "file_transcribe_done", filename)
+				}()
 			})
 		},
 		Bind: []interface{}{app},
