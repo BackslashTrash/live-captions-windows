@@ -8,7 +8,7 @@ Live Captions is a desktop application providing real-time speech-to-text subtit
 
 * **Transparent Overlay:** The user interface consists of a frameless, draggable window. It sits seamlessly over other open applications without obstructing your workflow.
 
-* **Multiple Languages:** Users can switch between English, Spanish, French, German, Japanese, Chinese, and several other languages. The software automatically downloads and applies new language models in the background upon selection. The downloaded models are located at C:\Users\USERNAME\AppData\Roaming\LiveCaptions.
+* **Multiple Languages:** Users can switch between English, Spanish, French, German, Japanese, Chinese, and several other languages. The software automatically downloads and applies new language models in the background upon selection.
 
 * **Audio File Transcription:** You can process pre-recorded media. By uploading audio files, the built-in FFmpeg engine converts and transcribes the content into a text document within seconds.
 
@@ -32,9 +32,11 @@ Live Captions is a desktop application providing real-time speech-to-text subtit
 
 4. Launch the application from your Windows Start Menu.
 
-### Where the transcription files are stored
+### Where the files are stored
 
 The default transcription file is located in C:\Users\USERNAME\Documents\Transcriptions
+
+The downloaded models are located at C:\Users\USERNAME\AppData\Roaming\LiveCaptions
 
 ## Usage Instructions
 
