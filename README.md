@@ -46,6 +46,8 @@ The downloaded models are located at C:\Users\USERNAME\AppData\Roaming\LiveCapti
 
 * **Transcribing a File:** Within the settings menu, click the upload button. Select your desired audio file and wait a few moments for the completion message. Your finished text document will appear in your default save folder.
 
+* **File exports** The circle on the top near the settings button turns on live transcription, when it's red, it means it is active, click again to stop live transcription.
+
 ## Privacy
 
 Because the speech recognition process is completely localized via the Vosk engine, no audio data is ever transmitted over the internet or recorded by external servers. All voice processing remains strictly on your local hardware.
