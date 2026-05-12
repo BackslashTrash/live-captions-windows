@@ -282,8 +282,14 @@ func main() {
 
 			runtime.EventsOn(ctx, "save_transcript", func(optionalData ...interface{}) {
 				if len(optionalData) >= 2 {
-					folderPath := optionalData[0].(string)
-					content := optionalData[1].(string)
+					// 1. Safe Type Assertion: Prevents silent crashes if the frontend sends null
+					folderPath, ok1 := optionalData[0].(string)
+					content, ok2 := optionalData[1].(string)
+					
+					if !ok1 || !ok2 {
+						runtime.LogErrorf(ctx, "Save Error: Frontend sent invalid data types.")
+						return
+					}
 					
 					if folderPath == "" {
 						docs, err := os.UserHomeDir()
@@ -297,8 +303,29 @@ func main() {
 					currentTime := time.Now().Format("2006-01-02_15-04-05")
 					fullPath := filepath.Join(folderPath, "Transcription_"+currentTime+".txt")
 					
-					os.MkdirAll(folderPath, os.ModePerm)
-					os.WriteFile(fullPath, []byte(content), 0644)
+					// 2. Catch and display directory creation errors
+					err := os.MkdirAll(folderPath, os.ModePerm)
+					if err != nil {
+						runtime.MessageDialog(ctx, runtime.MessageDialogOptions{
+							Type:    runtime.ErrorDialog,
+							Title:   "Folder Access Error",
+							Message: "Could not access the Transcriptions folder: " + err.Error(),
+						})
+						return
+					}
+					
+					// 3. Catch and display file writing errors
+					err = os.WriteFile(fullPath, []byte(content), 0644)
+					if err != nil {
+						runtime.MessageDialog(ctx, runtime.MessageDialogOptions{
+							Type:    runtime.ErrorDialog,
+							Title:   "Save Error",
+							Message: "Windows blocked the file from saving: " + err.Error(),
+						})
+						return
+					}
+
+					runtime.LogInfof(ctx, "Successfully saved: %s", fullPath)
 				}
 			})
 
@@ -321,11 +348,16 @@ func main() {
 			runtime.EventsOn(ctx, "transcribe_audio_file", func(optionalData ...interface{}) {
 				go func() {
 					if len(optionalData) == 0 { return }
-					audioPath := optionalData[0].(string)
+					
+					// Safe Type Assertion
+					audioPath, ok := optionalData[0].(string)
+					if !ok {
+						runtime.EventsEmit(ctx, "file_transcribe_error", "Invalid file path sent from frontend.")
+						return
+					}
 
 					runtime.EventsEmit(ctx, "file_transcribe_start")
 
-					// BUNDLED FFMPEG FIX: Find the local ffmpeg.exe sitting next to the app
 					exeLocation, _ := os.Executable()
 					exeDir := filepath.Dir(exeLocation)
 					ffmpegPath := filepath.Join(exeDir, "ffmpeg.exe")
@@ -381,11 +413,21 @@ func main() {
 					if err == nil {
 						folderPath = filepath.Join(docs, "Documents", "Transcriptions")
 					}
-					os.MkdirAll(folderPath, os.ModePerm)
+					
+					// Catch Folder Errors
+					if err := os.MkdirAll(folderPath, os.ModePerm); err != nil {
+						runtime.EventsEmit(ctx, "file_transcribe_error", "Could not access save folder: " + err.Error())
+						return
+					}
 					
 					currentTime := time.Now().Format("2006-01-02_15-04-05")
 					filename := filepath.Join(folderPath, "File_Transcription_"+currentTime+".txt")
-					os.WriteFile(filename, []byte(fullTranscript), 0644)
+					
+					// Catch File Write Errors
+					if err := os.WriteFile(filename, []byte(fullTranscript), 0644); err != nil {
+						runtime.EventsEmit(ctx, "file_transcribe_error", "Windows blocked the save: " + err.Error())
+						return
+					}
 
 					runtime.EventsEmit(ctx, "file_transcribe_done", filename)
 				}()
