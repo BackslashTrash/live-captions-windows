@@ -40,13 +40,25 @@ The downloaded models are located at C:\Users\USERNAME\AppData\Roaming\LiveCapti
 
 ## Usage Instructions
 
-* **Live Captions** When the app is open, the audio played on the device will automatically transcribe into the captions inside the box.*
+* **Live Captions** When the app is open, the audio played on the device will automatically transcribe into the captions inside the box.
 
 * **Changing the Language:** Open the settings menu by clicking the gear icon. Select a different language from the available dropdown list. The application will fetch the necessary files and switch over automatically.
 
 * **Transcribing a File:** Within the settings menu, click the upload button. Select your desired audio file and wait a few moments for the completion message. Your finished text document will appear in your default save folder.
 
 * **File exports** The circle on the top near the settings button turns on live transcription, when it's red, it means it is active, click again to stop live transcription.
+  
+* **Languages supported**
+  * English
+  * Spanish
+  * French
+  * German
+  * Japanese
+  * Chinese(Mandarin)
+  * Italian
+  * Hindi
+  * Russian
+  * Portuguese.
 
 ## Privacy
 
