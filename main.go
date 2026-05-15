@@ -226,7 +226,7 @@ func main() {
 	err = wails.Run(&options.App{
 		Title:            "Live Captions",
 		Width:            900,
-		Height:           140,
+		Height:           420,
 		AlwaysOnTop:      true,
 		Frameless:        true,
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0},
@@ -252,12 +252,15 @@ func main() {
 					if err == nil {
 						changeModel(modelPath)
 						runtime.EventsEmit(ctx, "model_ready", defaultLang)
+						runtime.EventsEmit(ctx, "resize_window", 140)
 					} else {
 						runtime.EventsEmit(ctx, "download_error", "Failed to download default model.")
+						runtime.EventsEmit(ctx, "resize_window", 140)
 					}
 				} else {
 					changeModel(modelPath)
 					runtime.EventsEmit(ctx, "model_ready", defaultLang)
+					runtime.EventsEmit(ctx, "resize_window", 140)
 				}
 			}()
 
@@ -277,6 +280,7 @@ func main() {
 							err := downloadAndExtract(lang)
 							if err != nil {
 								runtime.EventsEmit(ctx, "download_error", "Failed to download model.")
+								runtime.EventsEmit(ctx, "resize_window", 140)
 								return
 							}
 						}
@@ -284,9 +288,11 @@ func main() {
 						err := changeModel(modelPath)
 						if err != nil {
 							runtime.EventsEmit(ctx, "download_error", "Failed to load model into memory.")
+							runtime.EventsEmit(ctx, "resize_window", 140)
 							return
 						}
 						runtime.EventsEmit(ctx, "model_ready", lang)
+						runtime.EventsEmit(ctx, "resize_window", 140)
 					}()
 				}
 			})

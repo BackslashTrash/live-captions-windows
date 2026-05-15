@@ -18,6 +18,16 @@ func NewApp(am *audio.Manager) *App {
 
 func (a *App) OnStartup(ctx context.Context) {
 	a.ctx = ctx
+
+	// Wire the audio level callback — fires at ~20 Hz from the audio goroutine.
+	// We scale RMS [0–1] to an integer 0–100 for a compact JSON payload.
+	a.audioManager.LevelCallback = func(rms float32) {
+		level := int(rms * 100)
+		if level > 100 {
+			level = 100
+		}
+		runtime.EventsEmit(a.ctx, "audio_level", level)
+	}
 }
 
 // Called from main goroutine to push captions to frontend

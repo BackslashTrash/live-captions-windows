@@ -39,7 +39,102 @@
       transition: opacity 0.3s ease;
     }
 
-    #drag-handle { color: rgba(0, 0, 0, 0.6); font-size: 11px; user-select: none; font-weight: 500; }
+    #drag-handle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+      --wails-draggable: drag;
+    }
+
+    #drag-label {
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    /* Source label — "Computer Audio" / "Microphone: Device Name" */
+    #source-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.45);
+      max-width: 200px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* 3-bar RMS level meter */
+    #level-meter {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 12px;
+    }
+
+    .level-bar {
+      width: 3px;
+      border-radius: 1px;
+      background: rgba(0, 0, 0, 0.15);
+      transition: height 0.08s ease, background 0.15s ease;
+    }
+
+    /* Separator dot between label and source */
+    #drag-handle .sep {
+      color: rgba(0, 0, 0, 0.2);
+      font-size: 10px;
+    }
+
+    /* Dark mode overrides for new drag-handle children */
+    body.dark-mode #drag-label { color: rgba(255, 255, 255, 0.5); }
+    body.dark-mode #source-label { color: rgba(255, 255, 255, 0.3); }
+    body.dark-mode #drag-handle .sep { color: rgba(255, 255, 255, 0.15); }
+    body.dark-mode .level-bar { background: rgba(255, 255, 255, 0.12); }
+
+    /* Toast notification system */
+    #toast-container {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      z-index: 600;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: rgba(30, 30, 30, 0.92);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 7px 14px;
+      border-radius: 20px;
+      white-space: nowrap;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      pointer-events: none;
+    }
+
+    .toast.toast-error {
+      background: rgba(180, 30, 30, 0.92);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    body.dark-mode .toast {
+      background: rgba(50, 50, 50, 0.95);
+    }
+
+    body.dark-mode .toast.toast-error {
+      background: rgba(180, 40, 40, 0.95);
+    }
 
     button {
       background: none; border: none; color: rgba(0, 0, 0, 0.6);
@@ -47,7 +142,7 @@
       transition: background 0.2s, color 0.2s;
     }
 
-    #settings-btn:hover, #record-btn:hover, #minimize-btn:hover, #mic-btn:hover, #transparent-btn:hover { background: rgba(0, 0, 0, 0.1); color: black; }
+    #settings-btn:hover, #record-btn:hover, #minimize-btn:hover, #mic-btn:hover, #transparent-btn:hover, #history-btn:hover { background: rgba(0, 0, 0, 0.1); color: black; }
     #close-btn:hover { background: rgba(255, 60, 60, 0.8); color: white; }
 
     /* Transparent button active state */
@@ -94,6 +189,76 @@
       transition: background 0.2s, color 0.2s, padding 0.2s;
     }
 
+    /* ===================== HISTORY PANEL ===================== */
+    #history-panel {
+      position: fixed;
+      /* sits just below the main widget; top is set dynamically by JS */
+      left: 0;
+      right: 0;
+      max-height: 260px;
+      background: rgba(245, 245, 245, 0.97);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 50;
+      /* hidden by default — JS toggles this */
+      transform: translateY(-4px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+    #history-panel.open {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
+    }
+
+    #history-scroll {
+      overflow-y: auto;
+      flex: 1;
+      padding: 10px 20px 12px;
+      scroll-behavior: smooth;
+    }
+
+    #history-scroll::-webkit-scrollbar { width: 4px; }
+    #history-scroll::-webkit-scrollbar-track { background: transparent; }
+    #history-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
+
+    #history-content {
+      font-size: 13px;
+      line-height: 1.65;
+      color: rgba(0,0,0,0.7);
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    #history-empty {
+      font-size: 12px;
+      color: rgba(0,0,0,0.3);
+      font-style: italic;
+    }
+
+    /* History toggle button — added to top bar */
+    #history-btn.active {
+      color: #0078d4;
+      background: rgba(0, 120, 212, 0.1);
+    }
+    #history-btn.active:hover { background: rgba(0, 120, 212, 0.2); }
+
+    /* Dark mode history */
+    body.dark-mode #history-panel {
+      background: rgba(15, 15, 15, 0.92);
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    body.dark-mode #history-content { color: rgba(255,255,255,0.65); }
+    body.dark-mode #history-empty { color: rgba(255,255,255,0.2); }
+    body.dark-mode #history-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
+    body.dark-mode #history-btn.active { color: #4daafc; background: rgba(77,170,252,0.15); }
+    body.dark-mode #history-btn.active:hover { background: rgba(77,170,252,0.25); }
+
     /* ===================== HIDDEN BAR MODE ("Transparent") ===================== */
     /* Windows WebView2 does not support true per-pixel transparency.              */
     /* This mode simply hides the top bar — the widget looks identical to normal.  */
@@ -137,10 +302,30 @@
     }
 
     #temp-bar-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       color: rgba(0, 0, 0, 0.6);
       font-size: 11px;
       user-select: none;
       font-weight: 500;
+    }
+
+    #temp-source-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.4);
+      max-width: 160px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #temp-level-meter {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 12px;
     }
 
     #temp-bar-controls {
@@ -166,6 +351,7 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
     body.dark-mode #temp-bar-label { color: rgba(255,255,255,0.5); }
+    body.dark-mode #temp-source-label { color: rgba(255,255,255,0.28); }
     body.dark-mode #temp-bar button { color: rgba(255,255,255,0.7); }
     body.dark-mode #temp-bar button:hover { background: rgba(255,255,255,0.12); color: white; }
 
@@ -248,10 +434,10 @@
     body.dark-mode #top-bar { background: rgba(255, 255, 255, 0.05); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
     body.dark-mode #drag-handle { color: rgba(255, 255, 255, 0.5); }
     body.dark-mode button { color: rgba(255, 255, 255, 0.7); }
-    body.dark-mode #settings-btn:hover, body.dark-mode #record-btn:hover, body.dark-mode #minimize-btn:hover, body.dark-mode #mic-btn:hover, body.dark-mode #transparent-btn:hover { background: rgba(255, 255, 255, 0.15); color: white; }
+    body.dark-mode #settings-btn:hover, body.dark-mode #record-btn:hover, body.dark-mode #minimize-btn:hover, body.dark-mode #mic-btn:hover, body.dark-mode #mic-btn:hover, body.dark-mode #history-btn:hover, body.dark-mode #transparent-btn:hover { background: rgba(255, 255, 255, 0.15); color: white; }
     body.dark-mode #transparent-btn.active { color: #4daafc; background: rgba(77, 170, 252, 0.15); }
     body.dark-mode #transparent-btn.active:hover { background: rgba(77, 170, 252, 0.25); }
-    body.dark-mode #caption { color: #ffffff; }
+    body.dark-mode #caption { color: #ffffff; text-shadow: 0 1px 4px rgba(0,0,0,0.5), 0 0 12px rgba(0,0,0,0.3); }
 
     body.dark-mode #settings-window { background: rgba(30, 30, 30, 0.98); border: 1px solid rgba(255, 255, 255, 0.15); color: white; box-shadow: 0 16px 40px rgba(0,0,0,0.6); }
     body.dark-mode .settings-header { background: rgba(255, 255, 255, 0.05); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
@@ -268,16 +454,308 @@
     body.dark-mode #download-bar { background: #4daafc; }
     body.dark-mode #file-transcribe-status { color: #cccccc !important; }
     body.dark-mode .toggle-row span { color: #ccc; }
+
+    /* ===================== ONBOARDING OVERLAY ===================== */
+    #onboarding-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(245, 245, 247, 0.97);
+      backdrop-filter: blur(12px);
+      opacity: 1;
+      transition: opacity 0.4s ease;
+    }
+
+    #onboarding-overlay.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #onboarding-card {
+      width: 720px;
+      max-width: calc(100vw - 40px);
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.09);
+      border-radius: 14px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+      overflow: hidden;
+    }
+
+    #onboarding-header {
+      padding: 22px 28px 18px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    #onboarding-logo {
+      width: 36px;
+      height: 36px;
+      background: #000;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    #onboarding-header h1 {
+      font-size: 17px;
+      font-weight: 600;
+      color: #000;
+      margin: 0;
+      letter-spacing: -0.2px;
+    }
+
+    #onboarding-header p {
+      font-size: 12px;
+      color: rgba(0,0,0,0.45);
+      margin: 2px 0 0;
+    }
+
+    #onboarding-body {
+      padding: 22px 28px;
+    }
+
+    #onboarding-modes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .ob-mode-card {
+      background: rgba(0,0,0,0.03);
+      border: 1px solid rgba(0,0,0,0.07);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .ob-mode-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .ob-mode-card h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #000;
+      margin: 0 0 3px;
+    }
+
+    .ob-mode-card p {
+      font-size: 12px;
+      color: rgba(0,0,0,0.5);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    #onboarding-status {
+      background: rgba(0,0,0,0.03);
+      border: 1px solid rgba(0,0,0,0.07);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    #ob-status-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+
+    #ob-progress-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #ob-progress-track {
+      flex: 1;
+      height: 5px;
+      background: rgba(0,0,0,0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    #ob-progress-fill {
+      width: 0%;
+      height: 100%;
+      background: #000;
+      border-radius: 3px;
+      transition: width 0.25s ease;
+    }
+
+    #ob-progress-pct {
+      font-size: 12px;
+      font-weight: 600;
+      color: #000;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    #ob-status-text {
+      font-size: 13px;
+      color: #000;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    #ob-status-sub {
+      font-size: 12px;
+      color: rgba(0,0,0,0.45);
+      margin-top: 6px;
+    }
+
+    /* spinner for "loading existing model" state */
+    @keyframes ob-spin { to { transform: rotate(360deg); } }
+    .ob-spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(0,0,0,0.15);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: ob-spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* checkmark for done state */
+    #ob-check {
+      display: none;
+      width: 20px; height: 20px;
+      background: #000;
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    #ob-check svg { display: block; }
+
+    /* dark-mode onboarding */
+    body.dark-mode #onboarding-overlay { background: rgba(12, 12, 12, 0.97); }
+    body.dark-mode #onboarding-card { background: #1a1a1a; border-color: rgba(255,255,255,0.08); }
+    body.dark-mode #onboarding-header { border-bottom-color: rgba(255,255,255,0.06); }
+    body.dark-mode #onboarding-header h1 { color: #fff; }
+    body.dark-mode #onboarding-header p { color: rgba(255,255,255,0.35); }
+    body.dark-mode #onboarding-logo { background: #fff; }
+    body.dark-mode .ob-mode-card { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.06); }
+    body.dark-mode .ob-mode-card h3 { color: #fff; }
+    body.dark-mode .ob-mode-card p { color: rgba(255,255,255,0.4); }
+    body.dark-mode .ob-mode-icon { background: rgba(255,255,255,0.08); }
+    body.dark-mode #onboarding-status { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.06); }
+    body.dark-mode #ob-status-label { color: rgba(255,255,255,0.35); }
+    body.dark-mode #ob-status-text { color: #fff; }
+    body.dark-mode #ob-status-sub { color: rgba(255,255,255,0.35); }
+    body.dark-mode #ob-progress-track { background: rgba(255,255,255,0.1); }
+    body.dark-mode #ob-progress-fill { background: #fff; }
+    body.dark-mode #ob-progress-pct { color: #fff; }
+    body.dark-mode .ob-spinner { border-color: rgba(255,255,255,0.15); border-top-color: #fff; }
+    body.dark-mode #ob-check { background: #fff; }
+    body.dark-mode #ob-check svg path { stroke: #000; }
   </style>
 </head>
 <body>
 
-  <!-- Invisible hover strip at top edge — triggers temp bar in transparent mode -->
+  <!-- ===================== ONBOARDING OVERLAY ===================== -->
+  <!-- Shown on first run OR while model is initialising. Dismissed on model_ready. -->
+  <div id="onboarding-overlay" style="display:none;">
+    <div id="onboarding-card">
+
+      <div id="onboarding-header">
+        <div id="onboarding-logo">
+          <!-- Waveform mark -->
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <rect x="2"  y="7"  width="2" height="6"  rx="1" fill="white"/>
+            <rect x="6"  y="4"  width="2" height="12" rx="1" fill="white"/>
+            <rect x="10" y="2"  width="2" height="16" rx="1" fill="white"/>
+            <rect x="14" y="5"  width="2" height="10" rx="1" fill="white"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Live Captions</h1>
+          <p>Offline speech-to-text — nothing leaves your device</p>
+        </div>
+      </div>
+
+      <div id="onboarding-body">
+
+        <div id="onboarding-modes">
+          <div class="ob-mode-card">
+            <div class="ob-mode-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Computer Audio</h3>
+              <p>Captions everything playing on your PC — meetings, videos, calls. No microphone needed.</p>
+            </div>
+          </div>
+          <div class="ob-mode-card">
+            <div class="ob-mode-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Microphone</h3>
+              <p>Captions your own voice. Switch any time with the mic button in the top bar.</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="onboarding-status">
+          <div id="ob-status-label">Status</div>
+          <div id="ob-status-text">Preparing language model…</div>
+          <div id="ob-progress-row">
+            <div class="ob-spinner" id="ob-spinner"></div>
+            <div id="ob-progress-track" style="display:none;">
+              <div id="ob-progress-fill"></div>
+            </div>
+            <div id="ob-progress-pct" style="display:none;">0%</div>
+            <div id="ob-check" aria-hidden="true">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M1.5 5L4 7.5L8.5 2.5" stroke="black" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+          <div id="ob-status-sub">All transcription happens locally — no audio is sent to any server.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <!-- ============================================================== -->
   <div id="reveal-bar"></div>
 
   <!-- Temporary control bar shown on hover in hidden-bar mode — identical to #top-bar -->
   <div id="temp-bar">
-    <div id="temp-bar-label">⋮⋮ Live Captions</div>
+    <div id="temp-bar-label">
+      <span>⋮⋮ Live Captions</span>
+      <span class="sep" style="color:rgba(0,0,0,0.2);font-size:10px;">·</span>
+      <div id="temp-level-meter" aria-hidden="true">
+        <div class="level-bar" id="tmp-lvl-bar-1" style="height:3px"></div>
+        <div class="level-bar" id="tmp-lvl-bar-2" style="height:3px"></div>
+        <div class="level-bar" id="tmp-lvl-bar-3" style="height:3px"></div>
+      </div>
+      <span id="temp-source-label">Computer Audio</span>
+    </div>
     <div id="temp-bar-controls">
       <!-- mic -->
       <button type="button" id="temp-mic-btn" title="Switch to Microphone">
@@ -291,6 +769,12 @@
       <button type="button" id="temp-record-btn" title="Start Transcription">
         <svg id="temp-record-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="5"></circle>
+        </svg>
+      </button>
+      <!-- history -->
+      <button type="button" id="temp-history-btn" title="Show transcript history">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 3h18v4H3z"/><path d="M3 10h18v4H3z"/><path d="M3 17h12v4H3z"/>
         </svg>
       </button>
       <!-- show bar (exit hidden-bar mode) -->
@@ -315,9 +799,21 @@
     </div>
   </div>
 
+  <!-- Toast notifications -->
+  <div id="toast-container"></div>
+
   <div id="widget-container">
     <div id="top-bar">
-      <div id="drag-handle">⋮⋮ Live Captions</div>
+      <div id="drag-handle">
+        <span id="drag-label">⋮⋮ Live Captions</span>
+        <span class="sep">·</span>
+        <div id="level-meter" aria-hidden="true">
+          <div class="level-bar" id="lvl-bar-1" style="height:3px"></div>
+          <div class="level-bar" id="lvl-bar-2" style="height:3px"></div>
+          <div class="level-bar" id="lvl-bar-3" style="height:3px"></div>
+        </div>
+        <span id="source-label">Computer Audio</span>
+      </div>
       <div class="window-controls">
         <button type="button" id="mic-btn" title="Switch to Microphone">
           <svg id="mic-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -329,6 +825,11 @@
         <button type="button" id="record-btn" title="Start Transcription">
           <svg id="record-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="5"></circle>
+          </svg>
+        </button>
+        <button type="button" id="history-btn" title="Show transcript history">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 3h18v4H3z"/><path d="M3 10h18v4H3z"/><path d="M3 17h12v4H3z"/>
           </svg>
         </button>
         <button type="button" id="transparent-btn" title="Hide Bar">
@@ -344,7 +845,16 @@
       </div>
     </div>
     <div id="caption-wrapper">
-      <div id="caption">Loading...</div>
+      <div id="caption">
+        <!-- Text set by JS immediately below to avoid flash of "Loading..." -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== HISTORY PANEL ===================== -->
+  <div id="history-panel" role="log" aria-label="Transcript history" aria-live="off">
+    <div id="history-scroll">
+      <div id="history-content"><span id="history-empty">Transcript history will appear here once speech is detected.</span></div>
     </div>
   </div>
 
@@ -417,16 +927,115 @@
   <script>
     const captionEl = document.getElementById("caption");
 
-    let permanentWords = [];
-    let hiddenWordCount = 0;
-    let isRecording = false;
+    // ===================== ONBOARDING LOGIC =====================
+    const obOverlay   = document.getElementById('onboarding-overlay');
+    const obStatusTxt = document.getElementById('ob-status-text');
+    const obStatusSub = document.getElementById('ob-status-sub');
+    const obSpinner   = document.getElementById('ob-spinner');
+    const obTrack     = document.getElementById('ob-progress-track');
+    const obFill      = document.getElementById('ob-progress-fill');
+    const obPct       = document.getElementById('ob-progress-pct');
+    const obCheck     = document.getElementById('ob-check');
+
+    const isFirstRun = !localStorage.getItem('hasLaunchedBefore');
+
+    function showOnboarding() {
+      // Apply current dark-mode before overlay shows so colours match
+      if (localStorage.getItem('nightMode') === 'true') {
+        document.body.classList.add('dark-mode');
+        document.getElementById('night-mode-toggle').checked = true;
+      }
+      obOverlay.style.display = 'flex';
+    }
+
+    function dismissOnboarding() {
+      obCheck.style.display = 'flex';
+      obSpinner.style.display = 'none';
+      obStatusTxt.textContent = 'Ready — captions will appear in the bar above.';
+      obStatusSub.textContent = 'This screen won\'t show again on future launches.';
+
+      setTimeout(() => {
+        obOverlay.classList.add('fade-out');
+        setTimeout(() => {
+          obOverlay.style.display = 'none';
+          // Shrink the window back to caption-bar height now that overlay is gone
+          if (window.runtime && window.runtime.WindowSetSize) {
+            window.runtime.WindowSetSize(900, 140);
+          }
+        }, 450);
+      }, 900);
+
+      localStorage.setItem('hasLaunchedBefore', 'true');
+    }
+
+    function obSetDownloadMode(lang) {
+      obStatusTxt.textContent = `Downloading ${lang} language model…`;
+      obStatusSub.textContent = 'This is a one-time download (~50 MB). Future launches are instant.';
+      obSpinner.style.display = 'none';
+      obTrack.style.display = 'block';
+      obPct.style.display = 'block';
+    }
+
+    function obUpdateProgress(percent) {
+      obFill.style.width = percent + '%';
+      obPct.textContent = percent + '%';
+      if (percent >= 100) {
+        obStatusTxt.textContent = 'Extracting files — almost there…';
+        obPct.textContent = '100%';
+      }
+    }
+
+    // Show overlay immediately if first run; otherwise show briefly while model loads
+    if (isFirstRun) {
+      showOnboarding();
+    } else {
+      // Returning user: show a minimal "loading" overlay only if model isn't instant
+      // (some machines take 1-2s to init Vosk). We give it 300ms grace period.
+      const loadTimer = setTimeout(() => {
+        obStatusTxt.textContent = 'Loading language model…';
+        obStatusSub.textContent = 'This only takes a moment.';
+        showOnboarding();
+      }, 300);
+
+      // If model_ready fires before 300ms, cancel the overlay entirely
+      window._obCancelQuickLoad = () => clearTimeout(loadTimer);
+    }
+    // ============================================================
+
+    // Set caption initial text immediately — avoids the "Loading..." flash
+    captionEl.textContent = isFirstRun
+      ? "Welcome — setting up your first language model…"
+      : "Initialising…";
+
+    let permanentWords   = [];
+    let hiddenWordCount  = 0;
+    let isRecording      = false;
     let transcriptBuffer = "";
+
+    // History / settings state — hoisted here so event handlers fired before
+    // the window state manager block executes can safely read/write them.
+    let historyLines   = [];
+    let historyOpen    = false;
+    let settingsOpen   = false;
+    let historyWasOpen = false;
 
     let saveFolder = localStorage.getItem('transcriptFolder') || "";
     document.getElementById('save-folder').value = saveFolder;
     document.getElementById('save-folder').addEventListener('input', (e) => {
       saveFolder = e.target.value.trim();
       localStorage.setItem('transcriptFolder', saveFolder);
+    });
+
+    // Window resize signal from Go — fires after model_ready / download_error.
+    // Only resize immediately if the onboarding overlay is NOT visible
+    // (i.e. returning user whose model loaded before the 300ms grace timer fired).
+    // When the overlay IS visible, dismissOnboarding() handles the resize
+    // after its own fade-out completes.
+    window.runtime.EventsOn("resize_window", (targetHeight) => {
+      if (obOverlay.style.display === 'none') {
+        window.runtime.WindowSetSize(900, targetHeight);
+      }
+      // else: dismissOnboarding() will call WindowSetSize after its fade
     });
 
     // --- LANGUAGE ---
@@ -448,11 +1057,21 @@
       dlText.textContent = `Downloading ${lang} Model... 0%`;
       dlBar.style.width = '0%';
       captionEl.textContent = `Downloading ${lang} language data...`;
+
+      // Onboarding: switch overlay to download progress mode
+      if (obOverlay.style.display !== 'none') {
+        obSetDownloadMode(lang);
+      } else {
+        // Settings panel is open / no overlay — still show overlay for download feedback
+        showOnboarding();
+        obSetDownloadMode(lang);
+      }
     });
 
     window.runtime.EventsOn("download_progress", (percent) => {
       dlText.textContent = percent === 100 ? 'Extracting Files... Please wait!' : `Downloading... ${percent}%`;
       dlBar.style.width = `${percent}%`;
+      obUpdateProgress(percent);
     });
 
     window.runtime.EventsOn("model_ready", (lang) => {
@@ -462,15 +1081,40 @@
       currentLang = lang;
       permanentWords = [];
       hiddenWordCount = 0;
+      lastRenderedWords = [];
+      historyLines = [];
+      historyContent.innerHTML = '<span id="history-empty">Transcript history will appear here once speech is detected.</span>';
       captionEl.textContent = "Listening in " + lang + "...";
+
+      // Cancel the returning-user quick-load timer if it hasn't fired yet
+      if (window._obCancelQuickLoad) {
+        window._obCancelQuickLoad();
+        window._obCancelQuickLoad = null;
+      }
+
+      // Dismiss the onboarding overlay if it's currently shown
+      if (obOverlay.style.display !== 'none') {
+        dismissOnboarding();
+      }
     });
 
     window.runtime.EventsOn("download_error", (err) => {
-      alert("Error loading model: " + err);
+      showToast('Failed to load language model: ' + err, true, 6000);
       dlContainer.style.display = 'none';
       langSelect.disabled = false;
       langSelect.value = currentLang;
       captionEl.textContent = "Listening in " + currentLang + "...";
+
+      // Dismiss overlay on error so the app isn't stuck behind it
+      if (obOverlay.style.display !== 'none') {
+        obOverlay.classList.add('fade-out');
+        setTimeout(() => {
+          obOverlay.style.display = 'none';
+          if (window.runtime && window.runtime.WindowSetSize) {
+            window.runtime.WindowSetSize(900, 140);
+          }
+        }, 450);
+      }
     });
 
     // --- AUDIO FILE UPLOAD ---
@@ -503,7 +1147,7 @@
       uploadBtn.style.opacity = "1";
       fileStatus.style.color = "#d13438";
       fileStatus.textContent = "Error occurred.";
-      alert(errMsg);
+      showToast(errMsg, true, 6000);
     });
 
     // --- NIGHT MODE ---
@@ -549,9 +1193,9 @@
     transparentBtn.onclick = () => {
       const isOn = document.body.classList.contains('transparent-mode');
       setTransparentMode(!isOn);
-      // Close settings if open so effect is immediately visible
-      settingsWindow.style.display = 'none';
-      if (window.runtime && window.runtime.WindowSetSize) window.runtime.WindowSetSize(900, 140);
+      // Close settings and history if open so the effect is immediately visible
+      if (settingsOpen) closeSettings();
+      if (historyOpen) closeHistory();
     };
 
     // Reveal bar on hover over the invisible strip at the top edge
@@ -576,55 +1220,183 @@
       }, 800);
     });
 
-    // --- TEMP BAR — mirrors all top-bar buttons ---
-    // Settings
-    document.getElementById('temp-settings-btn').onclick = () => {
-      if (window.runtime && window.runtime.WindowSetSize) window.runtime.WindowSetSize(900, 520);
+    // ===================== WINDOW STATE MANAGER =====================
+    // Single source of truth for window height and panel visibility.
+    // All open/close actions route through here so heights never conflict.
+    //
+    // Window height rules:
+    //   base (caption only):   140px
+    //   settings open:         520px
+    //   history open:          140 + historyPanelHeight (up to 260px = 400px total)
+    //   both:                  impossible — settings closes history
+    //
+    // historyWasOpen: remembers whether history was open before settings opened,
+    // so closing settings restores history if it was previously showing.
+
+    const CAPTION_H  = 140;
+    const SETTINGS_H = 520;
+    const HISTORY_H  = 260; // max-height of the panel itself
+
+    const historyPanel   = document.getElementById('history-panel');
+    const historyContent = document.getElementById('history-content');
+    const historyScroll  = document.getElementById('history-scroll');
+    const historyBtn     = document.getElementById('history-btn');
+    const tempHistoryBtn = document.getElementById('temp-history-btn');
+    const settingsWindow = document.getElementById('settings-window');
+
+    // (historyOpen, settingsOpen, historyWasOpen, historyLines hoisted to top-level above)
+
+    function applyWindowSize(h) {
+      if (window.runtime && window.runtime.WindowSetSize) {
+        window.runtime.WindowSetSize(900, h);
+      }
+    }
+
+    function setHistoryButtonActive(on) {
+      [historyBtn, tempHistoryBtn].forEach(btn => {
+        btn.classList.toggle('active', on);
+        btn.title = on ? 'Hide transcript history' : 'Show transcript history';
+      });
+    }
+
+    function openHistory() {
+      if (settingsOpen) return; // settings takes priority
+      historyOpen = true;
+      historyPanel.style.top = CAPTION_H + 'px';
+      historyPanel.classList.add('open');
+      setHistoryButtonActive(true);
+      applyWindowSize(CAPTION_H + HISTORY_H);
+      scrollHistoryToBottom();
+    }
+
+    function closeHistory() {
+      historyOpen = false;
+      historyPanel.classList.remove('open');
+      setHistoryButtonActive(false);
+      if (!settingsOpen) applyWindowSize(CAPTION_H);
+    }
+
+    function setHistoryOpen(on) {
+      on ? openHistory() : closeHistory();
+    }
+
+    function openSettings() {
+      // Remember whether history was showing and collapse it
+      historyWasOpen = historyOpen;
+      if (historyOpen) {
+        historyPanel.classList.remove('open');
+        setHistoryButtonActive(false);
+        // don't flip historyOpen flag — historyWasOpen already captured it
+      }
+      settingsOpen = true;
       settingsWindow.style.display = 'flex';
+      applyWindowSize(SETTINGS_H);
+    }
+
+    function closeSettings() {
+      settingsOpen = false;
+      settingsWindow.style.display = 'none';
+      if (historyWasOpen) {
+        // Restore history — reopen it properly
+        historyOpen = false; // let openHistory() set it
+        openHistory();
+      } else {
+        applyWindowSize(CAPTION_H);
+      }
+    }
+
+    function scrollHistoryToBottom() {
+      requestAnimationFrame(() => {
+        historyScroll.scrollTop = historyScroll.scrollHeight;
+      });
+    }
+
+    function appendHistoryLine(text) {
+      if (!text.trim()) return;
+      const emptyEl = document.getElementById('history-empty');
+      if (emptyEl) emptyEl.remove();
+
+      const display = text.charAt(0).toUpperCase() + text.slice(1);
+      historyLines.push(display);
+      if (historyLines.length > 200) historyLines.shift();
+      historyContent.textContent = historyLines.join('\n');
+      if (historyOpen) scrollHistoryToBottom();
+    }
+
+    // Both buttons call setHistoryOpen directly — no delegation through a hidden element.
+    // Bug fix: in transparent mode #top-bar is display:none so historyBtn.click()
+    // from tempHistoryBtn was firing on a non-interactive element and being swallowed.
+    historyBtn.onclick    = () => setHistoryOpen(!historyOpen);
+    tempHistoryBtn.onclick = () => setHistoryOpen(!historyOpen);
+
+    // ===================== SETTINGS =====================
+    document.getElementById('settings-btn').onclick      = openSettings;
+    document.getElementById('close-settings-btn').onclick = closeSettings;
+
+    document.getElementById('font-size').oninput = (e) => {
+      captionEl.style.fontSize = e.target.value + 'px';
+      document.getElementById('font-size-val').textContent = e.target.value;
+    };
+
+    // ===================== TEMP BAR ACTIONS =====================
+    document.getElementById('temp-settings-btn').onclick = () => {
+      openSettings();
       tempBar.classList.remove('visible');
     };
 
-    // Show bar (exit hidden-bar mode)
     document.getElementById('temp-exit-btn').onclick = () => {
       setTransparentMode(false);
       tempBar.classList.remove('visible');
     };
 
-    // Minimize & Close — delegate to same runtime calls
     document.getElementById('temp-minimize-btn').onclick = () => window.runtime.WindowMinimise();
-    document.getElementById('temp-close-btn').onclick = () => window.runtime.Quit();
+    document.getElementById('temp-close-btn').onclick    = () => window.runtime.Quit();
 
     // --- CAPTION LOGIC ---
+    // Issue C fix: track the last rendered word list so we can diff rather than
+    // rebuilding the full innerHTML on every partial event.
+    let lastRenderedWords = [];
+
+    function wordsEqual(a, b) {
+      if (a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i++) { if (a[i] !== b[i]) return false; }
+      return true;
+    }
+
     window.runtime.EventsOn("caption", (data) => {
-      let isFinal = data.startsWith("FINAL:");
-      let rawText = data.replace("FINAL:", "").replace("PARTIAL:", "").trim();
+      const isFinal = data.startsWith("FINAL:");
+      const rawText = data.replace("FINAL:", "").replace("PARTIAL:", "").trim();
 
       if (!rawText) return;
 
-      let partialWords = rawText.split(/\s+/);
-      let combinedWords = permanentWords.concat(partialWords);
+      const partialWords  = rawText.split(/\s+/);
+      const combinedWords = permanentWords.concat(partialWords);
 
       if (hiddenWordCount >= combinedWords.length) {
         hiddenWordCount = Math.max(0, combinedWords.length - 1);
       }
 
+      // Issue C: only rebuild DOM if the visible word list actually changed.
+      // This eliminates the flicker on rapid PARTIAL events where the text
+      // hasn't meaningfully updated between two consecutive events.
       function renderAndMeasure() {
-        let visibleWords = combinedWords.slice(hiddenWordCount);
-        captionEl.innerHTML = visibleWords.map(w => `<span>${w} </span>`).join('');
+        const visibleWords = combinedWords.slice(hiddenWordCount);
+
+        if (!wordsEqual(visibleWords, lastRenderedWords)) {
+          captionEl.innerHTML = visibleWords.map(w => `<span>${w} </span>`).join('');
+          lastRenderedWords = visibleWords.slice();
+        }
 
         if (captionEl.scrollHeight > captionEl.clientHeight + 2 && visibleWords.length > 0) {
-          let spans = captionEl.getElementsByTagName('span');
+          const spans = captionEl.getElementsByTagName('span');
           if (spans.length > 0) {
-            let firstTop = spans[0].offsetTop;
+            const firstTop = spans[0].offsetTop;
             let cutIndex = -1;
             for (let i = 1; i < spans.length; i++) {
               if (spans[i].offsetTop > firstTop + 5) { cutIndex = i; break; }
             }
-            if (cutIndex > 0) {
-              hiddenWordCount += cutIndex;
-            } else {
-              hiddenWordCount++;
-            }
+            hiddenWordCount += cutIndex > 0 ? cutIndex : 1;
+            lastRenderedWords = []; // force re-render after scroll advance
             renderAndMeasure();
           }
         }
@@ -634,8 +1406,12 @@
 
       if (isFinal) {
         permanentWords = permanentWords.concat(partialWords);
+
+        // Issue D: capitalise first word of each final segment and append to history
+        appendHistoryLine(rawText);
+
         if (permanentWords.length > 500) {
-          let trimCount = permanentWords.length - 200;
+          const trimCount = permanentWords.length - 200;
           permanentWords = permanentWords.slice(trimCount);
           hiddenWordCount = Math.max(0, hiddenWordCount - trimCount);
         }
@@ -670,26 +1446,72 @@
       }
     };
 
-    // --- SETTINGS UI ---
-    const settingsWindow = document.getElementById('settings-window');
+    // --- TOAST NOTIFICATIONS ---
+    // Replaces all alert() calls for non-blocking, accessible error feedback.
+    const toastContainer = document.getElementById('toast-container');
 
-    document.getElementById('settings-btn').onclick = () => {
-      if (window.runtime && window.runtime.WindowSetSize) window.runtime.WindowSetSize(900, 520);
-      settingsWindow.style.display = 'flex';
-    };
+    function showToast(message, isError = false, durationMs = 4000) {
+      const t = document.createElement('div');
+      t.className = 'toast' + (isError ? ' toast-error' : '');
+      t.textContent = message;
+      t.setAttribute('role', 'status');
+      t.setAttribute('aria-live', 'polite');
+      toastContainer.appendChild(t);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => { t.classList.add('show'); });
+      });
+      setTimeout(() => {
+        t.classList.remove('show');
+        setTimeout(() => t.remove(), 250);
+      }, durationMs);
+    }
 
-    document.getElementById('close-settings-btn').onclick = () => {
-      settingsWindow.style.display = 'none';
-      if (window.runtime && window.runtime.WindowSetSize) window.runtime.WindowSetSize(900, 140);
-    };
+    // --- AUDIO LEVEL METER ---
+    const levelBars    = [document.getElementById('lvl-bar-1'),     document.getElementById('lvl-bar-2'),     document.getElementById('lvl-bar-3')];
+    const tmpLevelBars = [document.getElementById('tmp-lvl-bar-1'), document.getElementById('tmp-lvl-bar-2'), document.getElementById('tmp-lvl-bar-3')];
+    const sourceLabel    = document.getElementById('source-label');
+    const tempSourceLabel = document.getElementById('temp-source-label');
 
-    document.getElementById('font-size').oninput = (e) => {
-      captionEl.style.fontSize = e.target.value + 'px';
-      document.getElementById('font-size-val').textContent = e.target.value;
-    };
+    // Thresholds for each bar (0–100 scale): bar1 lights at >5, bar2 at >20, bar3 at >45
+    const barThresholds = [5, 20, 45];
+    // Heights for lit/unlit states
+    const barHeightsLit  = ['5px', '8px', '12px'];
+    const barHeightsDim  = ['3px', '3px',  '3px'];
+    // Colours: green for normal, blue tint when in mic mode
+    let levelColor = 'rgba(0, 160, 80, 0.75)';
+
+    // Smooth decay: we keep the last received level and decay it 10% per frame
+    // so bars don't snap to zero between 50ms events.
+    let displayLevel = 0;
+    let levelRafId = null;
+
+    function updateBars(level) {
+      barThresholds.forEach((thresh, i) => {
+        const lit = level > thresh;
+        levelBars[i].style.height    = lit ? barHeightsLit[i] : barHeightsDim[i];
+        tmpLevelBars[i].style.height = lit ? barHeightsLit[i] : barHeightsDim[i];
+        levelBars[i].style.background    = lit ? levelColor : '';
+        tmpLevelBars[i].style.background = lit ? levelColor : '';
+      });
+    }
+
+    function levelDecayLoop() {
+      displayLevel *= 0.88;
+      updateBars(displayLevel);
+      levelRafId = requestAnimationFrame(levelDecayLoop);
+    }
+    levelRafId = requestAnimationFrame(levelDecayLoop);
+
+    window.runtime.EventsOn("audio_level", (level) => {
+      if (level > displayLevel) displayLevel = level;
+    });
+
+    function setSourceLabel(text) {
+      sourceLabel.textContent = text;
+      tempSourceLabel.textContent = text;
+    }
 
     // --- MICROPHONE ---
-    // Temp bar icon refs (needed before micBtn.onclick for inline sync)
     const tempMicIcon = document.getElementById('temp-mic-icon');
     const tempRecordIcon = document.getElementById('temp-record-icon');
     document.getElementById('temp-mic-btn').onclick = () => micBtn.click();
@@ -700,6 +1522,7 @@
     const micSelect = document.getElementById('mic-select');
     let useMic = false;
     let selectedMicIndex = -1;
+    let selectedMicName = 'System Default Microphone';
 
     async function loadMicrophones() {
       if (window.go && window.go.overlay && window.go.overlay.App) {
@@ -725,22 +1548,32 @@
       if (useMic) {
         micIcon.style.color = "#0078d4";
         tempMicIcon.style.color = "#0078d4";
+        levelColor = 'rgba(0, 100, 220, 0.75)';
         micBtn.title = "Switch back to Computer Audio";
-        window.go.overlay.App.SwitchAudioSource(true, selectedMicIndex).catch(err => alert("Error starting mic: " + err));
+        const label = selectedMicIndex === -1 ? 'Default Microphone' : selectedMicName;
+        setSourceLabel('Mic: ' + label);
+        window.go.overlay.App.SwitchAudioSource(true, selectedMicIndex)
+          .catch(err => showToast('Could not start microphone: ' + err, true));
         captionEl.textContent = "Listening to Microphone...";
       } else {
         micIcon.style.color = "";
         tempMicIcon.style.color = "";
+        levelColor = 'rgba(0, 160, 80, 0.75)';
         micBtn.title = "Switch to Microphone";
-        window.go.overlay.App.SwitchAudioSource(false, -1).catch(err => alert("Error starting loopback: " + err));
+        setSourceLabel('Computer Audio');
+        window.go.overlay.App.SwitchAudioSource(false, -1)
+          .catch(err => showToast('Could not start loopback audio: ' + err, true));
         captionEl.textContent = "Listening to Computer Audio...";
       }
     };
 
     micSelect.onchange = (e) => {
       selectedMicIndex = parseInt(e.target.value);
+      selectedMicName = e.target.options[e.target.selectedIndex].text;
       if (useMic) {
-        window.go.overlay.App.SwitchAudioSource(true, selectedMicIndex).catch(err => alert("Error switching mic: " + err));
+        setSourceLabel('Mic: ' + (selectedMicIndex === -1 ? 'Default Microphone' : selectedMicName));
+        window.go.overlay.App.SwitchAudioSource(true, selectedMicIndex)
+          .catch(err => showToast('Could not switch microphone: ' + err, true));
       }
     };
 

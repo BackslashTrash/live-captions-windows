@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"math"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/gen2brain/malgo"
@@ -35,6 +36,12 @@ type Manager struct {
 	nativeSampleRate uint32
 	resampleBuf      []float32
 	silentChunks     int
+
+	// LevelCallback is called with the RMS level [0.0–1.0] of each audio chunk.
+	// Throttled internally to fire at most once every 50ms (~20 Hz).
+	// Set this before calling SwitchSource. Safe to read from the callback goroutine.
+	LevelCallback func(rms float32)
+	lastLevelTime int64 // unix nanoseconds of last callback fire
 }
 
 func NewManager(out chan<- []float32) (*Manager, error) {
@@ -46,6 +53,21 @@ func NewManager(out chan<- []float32) (*Manager, error) {
 		ctx:        ctx,
 		audioQueue: out,
 	}, nil
+}
+
+// emitLevel fires LevelCallback with the RMS of samples, throttled to ~20 Hz.
+// Safe to call from any goroutine.
+func (m *Manager) emitLevel(rms float32) {
+	if m.LevelCallback == nil {
+		return
+	}
+	now := time.Now().UnixNano()
+	const minInterval = 50 * int64(time.Millisecond)
+	if now-m.lastLevelTime < minInterval {
+		return
+	}
+	m.lastLevelTime = now
+	m.LevelCallback(rms)
 }
 
 func (m *Manager) GetMicrophones() ([]map[string]interface{}, error) {
@@ -105,7 +127,9 @@ func (m *Manager) initLoopback() (*malgo.Device, error) {
 
 	callbacks := malgo.DeviceCallbacks{
 		Data: func(_, input []byte, _ uint32) {
-			m.audioQueue <- int16SliceToFloat32(input)
+			samples := int16SliceToFloat32(input)
+			m.emitLevel(computeRMS(samples))
+			m.audioQueue <- samples
 		},
 	}
 
@@ -142,6 +166,7 @@ func (m *Manager) initMicrophone(micIndex int) (*malgo.Device, error) {
 
 			// 3. Noise gate — skip silent chunks, allow tail for Vosk finalization
 			rms := computeRMS(resampled)
+			m.emitLevel(rms)
 			if rms < noiseGateThreshold {
 				m.silentChunks++
 				if m.silentChunks > silenceChunksBeforeStop {
@@ -165,6 +190,7 @@ func (m *Manager) initMicrophone(micIndex int) (*malgo.Device, error) {
 				samples := int16SliceToFloat32(input)
 				samples = normalize(samples)
 				rms := computeRMS(samples)
+				m.emitLevel(rms)
 				if rms < noiseGateThreshold {
 					m.silentChunks++
 					if m.silentChunks > silenceChunksBeforeStop {
