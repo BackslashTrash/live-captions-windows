@@ -4,7 +4,6 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    /* LIGHT MODE (DEFAULT) STYLES */
     body {
       background: transparent;
       display: flex;
@@ -37,18 +36,28 @@
       border-bottom: 1px solid rgba(0, 0, 0, 0.05);
       --wails-draggable: drag;
       z-index: 10;
+      transition: opacity 0.3s ease;
     }
 
-    #drag-handle { color: rgba(0, 0, 0, 0.6); font-size: 11px; user-select: none; font-weight: 500;}
-    
+    #drag-handle { color: rgba(0, 0, 0, 0.6); font-size: 11px; user-select: none; font-weight: 500; }
+
     button {
       background: none; border: none; color: rgba(0, 0, 0, 0.6);
       cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center;
       transition: background 0.2s, color 0.2s;
     }
 
-    #settings-btn:hover, #record-btn:hover, #minimize-btn:hover { background: rgba(0, 0, 0, 0.1); color: black; }
+    #settings-btn:hover, #record-btn:hover, #minimize-btn:hover, #mic-btn:hover, #transparent-btn:hover { background: rgba(0, 0, 0, 0.1); color: black; }
     #close-btn:hover { background: rgba(255, 60, 60, 0.8); color: white; }
+
+    /* Transparent button active state */
+    #transparent-btn.active {
+      color: #0078d4;
+      background: rgba(0, 120, 212, 0.1);
+    }
+    #transparent-btn.active:hover {
+      background: rgba(0, 120, 212, 0.2);
+    }
 
     .window-controls { display: flex; align-items: center; gap: 4px; }
 
@@ -64,7 +73,7 @@
     }
 
     #caption {
-      color: #000000; 
+      color: #000000;
       font-size: 24px;
       text-align: left;
       line-height: 1.4em;
@@ -77,10 +86,93 @@
       position: relative;
     }
 
-    /* THE SETTINGS MENU */
+    /* Individual word spans */
+    #caption span {
+      display: inline;
+      border-radius: 3px;
+      padding: 0;
+      transition: background 0.2s, color 0.2s, padding 0.2s;
+    }
+
+    /* ===================== HIDDEN BAR MODE ("Transparent") ===================== */
+    /* Windows WebView2 does not support true per-pixel transparency.              */
+    /* This mode simply hides the top bar — the widget looks identical to normal.  */
+    body.transparent-mode #top-bar {
+      display: none;
+    }
+
+    /* Hover zone at top edge to reveal bar temporarily */
+    #reveal-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 8px;
+      z-index: 200;
+      display: none; /* shown only in transparent mode */
+    }
+
+    body.transparent-mode #reveal-bar {
+      display: block;
+    }
+
+    /* Temporary overlay bar that appears on hover in transparent mode */
+    #temp-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 16px;
+      background: rgba(250, 250, 250, 0.98);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      z-index: 199;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      --wails-draggable: drag;
+    }
+
+    #temp-bar.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    #temp-bar-label {
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 11px;
+      user-select: none;
+      font-weight: 500;
+    }
+
+    #temp-bar-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #temp-bar button {
+      background: none; border: none; color: rgba(0,0,0,0.6);
+      cursor: pointer; padding: 4px; border-radius: 4px;
+      display: flex; align-items: center;
+      transition: background 0.2s;
+    }
+
+    #temp-bar button:hover { background: rgba(0,0,0,0.1); color: black; }
+    #temp-exit-btn:hover { background: rgba(0, 120, 212, 0.12) !important; }
+    #temp-close-btn:hover { background: rgba(255, 60, 60, 0.8) !important; color: white !important; }
+
+    /* Dark mode temp bar */
+    body.dark-mode #temp-bar {
+      background: rgba(15, 15, 15, 0.85);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    body.dark-mode #temp-bar-label { color: rgba(255,255,255,0.5); }
+    body.dark-mode #temp-bar button { color: rgba(255,255,255,0.7); }
+    body.dark-mode #temp-bar button:hover { background: rgba(255,255,255,0.12); color: white; }
+
+    /* ===================== SETTINGS MENU ===================== */
     #settings-window {
       position: absolute;
-      top: 140px; /* Shifted down to accommodate the new 140px default height! */
+      top: 140px;
       left: 50%;
       transform: translateX(-50%);
       width: 650px;
@@ -133,25 +225,32 @@
 
     .setting-card label { font-size: 14px; color: #444; font-weight: 600; }
     .setting-card input[type="range"] { width: 100%; cursor: pointer; }
-    
+
     #save-folder { width: 100%; background: #fff; border: 1px solid #ccc; color: #000; padding: 8px 10px; border-radius: 4px; font-size: 13px; outline: none; }
     #save-folder:focus { border-color: #0078d4; }
 
     select {
       background: #fff; border: 1px solid #ccc; color: #000; padding: 6px 10px; border-radius: 4px; font-size: 14px; width: 100%; cursor: pointer; outline: none;
     }
-    
+
     #download-progress-container { display: none; flex-direction: column; gap: 6px; margin-top: 4px; }
     #download-text { font-size: 12px; color: #0078d4; font-weight: 600; }
     .progress-track { width: 100%; height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden; }
     #download-bar { width: 0%; height: 100%; background: #0078d4; transition: width 0.2s; }
 
-    /* --- NIGHT MODE OVERRIDES --- */
+    /* Toggle switch style */
+    .toggle-row { display: flex; align-items: center; gap: 10px; }
+    .toggle-row input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+    .toggle-row span { font-size: 14px; font-weight: 500; }
+
+    /* ===================== NIGHT MODE ===================== */
     body.dark-mode #widget-container { background: rgba(15, 15, 15, 0.85); }
     body.dark-mode #top-bar { background: rgba(255, 255, 255, 0.05); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
     body.dark-mode #drag-handle { color: rgba(255, 255, 255, 0.5); }
     body.dark-mode button { color: rgba(255, 255, 255, 0.7); }
-    body.dark-mode #settings-btn:hover, body.dark-mode #record-btn:hover, body.dark-mode #minimize-btn:hover { background: rgba(255, 255, 255, 0.15); color: white; }
+    body.dark-mode #settings-btn:hover, body.dark-mode #record-btn:hover, body.dark-mode #minimize-btn:hover, body.dark-mode #mic-btn:hover, body.dark-mode #transparent-btn:hover { background: rgba(255, 255, 255, 0.15); color: white; }
+    body.dark-mode #transparent-btn.active { color: #4daafc; background: rgba(77, 170, 252, 0.15); }
+    body.dark-mode #transparent-btn.active:hover { background: rgba(77, 170, 252, 0.25); }
     body.dark-mode #caption { color: #ffffff; }
 
     body.dark-mode #settings-window { background: rgba(30, 30, 30, 0.98); border: 1px solid rgba(255, 255, 255, 0.15); color: white; box-shadow: 0 16px 40px rgba(0,0,0,0.6); }
@@ -162,28 +261,84 @@
     body.dark-mode .setting-card label { color: #cccccc; }
     body.dark-mode #save-folder { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white; }
     body.dark-mode #save-folder:focus { border-color: #4daafc; }
-    
     body.dark-mode select { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white; }
     body.dark-mode select option { background: #1e1e1e; color: white; }
     body.dark-mode .progress-track { background: rgba(255,255,255,0.1); }
     body.dark-mode #download-text { color: #4daafc; }
     body.dark-mode #download-bar { background: #4daafc; }
     body.dark-mode #file-transcribe-status { color: #cccccc !important; }
+    body.dark-mode .toggle-row span { color: #ccc; }
   </style>
 </head>
 <body>
+
+  <!-- Invisible hover strip at top edge — triggers temp bar in transparent mode -->
+  <div id="reveal-bar"></div>
+
+  <!-- Temporary control bar shown on hover in hidden-bar mode — identical to #top-bar -->
+  <div id="temp-bar">
+    <div id="temp-bar-label">⋮⋮ Live Captions</div>
+    <div id="temp-bar-controls">
+      <!-- mic -->
+      <button type="button" id="temp-mic-btn" title="Switch to Microphone">
+        <svg id="temp-mic-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="22"></line>
+        </svg>
+      </button>
+      <!-- record -->
+      <button type="button" id="temp-record-btn" title="Start Transcription">
+        <svg id="temp-record-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"></circle>
+        </svg>
+      </button>
+      <!-- show bar (exit hidden-bar mode) -->
+      <button type="button" id="temp-exit-btn" title="Show Bar" style="color:#0078d4;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      </button>
+      <!-- settings -->
+      <button type="button" id="temp-settings-btn" title="Open Settings">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </button>
+      <!-- minimize -->
+      <button type="button" id="temp-minimize-btn" title="Minimize App">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      </button>
+      <!-- close -->
+      <button type="button" id="temp-close-btn" title="Quit App" style="border-radius:4px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+  </div>
 
   <div id="widget-container">
     <div id="top-bar">
       <div id="drag-handle">⋮⋮ Live Captions</div>
       <div class="window-controls">
+        <button type="button" id="mic-btn" title="Switch to Microphone">
+          <svg id="mic-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="22"></line>
+          </svg>
+        </button>
         <button type="button" id="record-btn" title="Start Transcription">
           <svg id="record-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="5"></circle>
           </svg>
         </button>
+        <button type="button" id="transparent-btn" title="Hide Bar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+            <line x1="1" y1="1" x2="23" y2="23" stroke-width="2"></line>
+          </svg>
+        </button>
         <button type="button" id="settings-btn" title="Open Settings"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
-        <!-- NEW: Minimize Button added exactly here -->
         <button type="button" id="minimize-btn" title="Minimize App"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
         <button type="button" id="close-btn" title="Quit App"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
@@ -198,7 +353,7 @@
       <span>Settings</span>
       <button type="button" id="close-settings-btn" title="Close Settings">✖</button>
     </div>
-    
+
     <div class="settings-body">
 
       <div class="setting-card" style="grid-column: span 2;">
@@ -215,7 +370,6 @@
           <option value="Japanese">Japanese</option>
           <option value="Hindi">Hindi</option>
         </select>
-        
         <div id="download-progress-container">
           <span id="download-text">Downloading Model... 0%</span>
           <div class="progress-track">
@@ -224,11 +378,18 @@
         </div>
       </div>
 
+      <div class="setting-card" style="grid-column: span 2;">
+        <label>Microphone Input Device</label>
+        <select id="mic-select">
+          <option value="-1">System Default Microphone</option>
+        </select>
+      </div>
+
       <div class="setting-card">
         <label>App Theme</label>
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <input type="checkbox" id="night-mode-toggle" style="width: 18px; height: 18px; cursor: pointer;">
-          <span id="theme-label" style="font-size: 14px; font-weight: 500;">Night mode</span>
+        <div class="toggle-row">
+          <input type="checkbox" id="night-mode-toggle">
+          <span>Night mode</span>
         </div>
       </div>
 
@@ -236,13 +397,12 @@
         <label>Caption Font Size (<span id="font-size-val">24</span>px)</label>
         <input type="range" id="font-size" min="16" max="40" value="24">
       </div>
-      
+
       <div class="setting-card" style="grid-column: span 2;">
         <label>Transcription Save Folder Path</label>
         <input type="text" id="save-folder" placeholder="Leave blank to use default: Documents/Transcriptions">
       </div>
 
-      <!-- NEW: File Upload Section -->
       <div class="setting-card" style="grid-column: span 2;">
         <label>Transcribe Audio File</label>
         <div style="display: flex; gap: 12px; align-items: center;">
@@ -256,21 +416,20 @@
 
   <script>
     const captionEl = document.getElementById("caption");
-    
+
     let permanentWords = [];
-    let hiddenWordCount = 0; 
+    let hiddenWordCount = 0;
     let isRecording = false;
     let transcriptBuffer = "";
-    
+
     let saveFolder = localStorage.getItem('transcriptFolder') || "";
     document.getElementById('save-folder').value = saveFolder;
-
     document.getElementById('save-folder').addEventListener('input', (e) => {
-        saveFolder = e.target.value.trim();
-        localStorage.setItem('transcriptFolder', saveFolder);
+      saveFolder = e.target.value.trim();
+      localStorage.setItem('transcriptFolder', saveFolder);
     });
 
-    // --- LANGUAGE AUTO-DOWNLOADER LOGIC ---
+    // --- LANGUAGE ---
     const langSelect = document.getElementById('language-select');
     const dlContainer = document.getElementById('download-progress-container');
     const dlText = document.getElementById('download-text');
@@ -280,100 +439,162 @@
     langSelect.value = currentLang;
 
     langSelect.onchange = (e) => {
-        let newLang = e.target.value;
-        langSelect.disabled = true; 
-        window.runtime.EventsEmit("switch_language", newLang);
+      langSelect.disabled = true;
+      window.runtime.EventsEmit("switch_language", e.target.value);
     };
 
     window.runtime.EventsOn("download_started", (lang) => {
-        dlContainer.style.display = 'flex';
-        dlText.textContent = `Downloading ${lang} Model... 0%`;
-        dlBar.style.width = '0%';
-        captionEl.textContent = `Downloading ${lang} language data...`;
+      dlContainer.style.display = 'flex';
+      dlText.textContent = `Downloading ${lang} Model... 0%`;
+      dlBar.style.width = '0%';
+      captionEl.textContent = `Downloading ${lang} language data...`;
     });
 
     window.runtime.EventsOn("download_progress", (percent) => {
-        if (percent === 100) {
-            dlText.textContent = `Extracting Files... Please wait!`;
-        } else {
-            dlText.textContent = `Downloading... ${percent}%`;
-        }
-        dlBar.style.width = `${percent}%`;
+      dlText.textContent = percent === 100 ? 'Extracting Files... Please wait!' : `Downloading... ${percent}%`;
+      dlBar.style.width = `${percent}%`;
     });
 
     window.runtime.EventsOn("model_ready", (lang) => {
-        dlContainer.style.display = 'none';
-        langSelect.disabled = false;
-        localStorage.setItem('voskLanguage', lang);
-        currentLang = lang;
-        
-        permanentWords = [];
-        hiddenWordCount = 0;
-        captionEl.textContent = "Listening in " + lang + "...";
+      dlContainer.style.display = 'none';
+      langSelect.disabled = false;
+      localStorage.setItem('voskLanguage', lang);
+      currentLang = lang;
+      permanentWords = [];
+      hiddenWordCount = 0;
+      captionEl.textContent = "Listening in " + lang + "...";
     });
 
     window.runtime.EventsOn("download_error", (err) => {
-        alert("Error loading model: " + err);
-        dlContainer.style.display = 'none';
-        langSelect.disabled = false;
-        langSelect.value = currentLang; 
-        captionEl.textContent = "Listening in " + currentLang + "...";
+      alert("Error loading model: " + err);
+      dlContainer.style.display = 'none';
+      langSelect.disabled = false;
+      langSelect.value = currentLang;
+      captionEl.textContent = "Listening in " + currentLang + "...";
     });
 
-    // --- AUDIO FILE UPLOAD LOGIC ---
+    // --- AUDIO FILE UPLOAD ---
     const uploadBtn = document.getElementById('upload-audio-btn');
     const fileStatus = document.getElementById('file-transcribe-status');
 
-    uploadBtn.onclick = () => {
-        window.runtime.EventsEmit("select_audio_file");
-    };
+    uploadBtn.onclick = () => window.runtime.EventsEmit("select_audio_file");
 
     window.runtime.EventsOn("audio_file_selected", (filePath) => {
-        window.runtime.EventsEmit("transcribe_audio_file", filePath);
+      window.runtime.EventsEmit("transcribe_audio_file", filePath);
     });
 
     window.runtime.EventsOn("file_transcribe_start", () => {
-        uploadBtn.disabled = true;
-        uploadBtn.style.opacity = "0.6";
-        fileStatus.style.color = "#0078d4";
-        fileStatus.textContent = "Converting and Transcribing... (This may take a minute)";
+      uploadBtn.disabled = true;
+      uploadBtn.style.opacity = "0.6";
+      fileStatus.style.color = "#0078d4";
+      fileStatus.textContent = "Converting and Transcribing... (This may take a minute)";
     });
 
     window.runtime.EventsOn("file_transcribe_done", (savedPath) => {
-        uploadBtn.disabled = false;
-        uploadBtn.style.opacity = "1";
-        fileStatus.style.color = "#107c10"; // Green success text
-        fileStatus.textContent = "Done! Saved to: " + savedPath;
-        setTimeout(() => { fileStatus.textContent = "Ready"; fileStatus.style.color = "#666"; }, 8000);
+      uploadBtn.disabled = false;
+      uploadBtn.style.opacity = "1";
+      fileStatus.style.color = "#107c10";
+      fileStatus.textContent = "Done! Saved to: " + savedPath;
+      setTimeout(() => { fileStatus.textContent = "Ready"; fileStatus.style.color = "#666"; }, 8000);
     });
 
     window.runtime.EventsOn("file_transcribe_error", (errMsg) => {
-        uploadBtn.disabled = false;
-        uploadBtn.style.opacity = "1";
-        fileStatus.style.color = "#d13438"; // Red error text
-        fileStatus.textContent = "Error occurred.";
-        alert(errMsg);
+      uploadBtn.disabled = false;
+      uploadBtn.style.opacity = "1";
+      fileStatus.style.color = "#d13438";
+      fileStatus.textContent = "Error occurred.";
+      alert(errMsg);
     });
 
-    // --- LIGHT / NIGHT MODE LOGIC ---
+    // --- NIGHT MODE ---
     const nightModeToggle = document.getElementById('night-mode-toggle');
-    
+
     if (localStorage.getItem('nightMode') === 'true') {
-        document.body.classList.add('dark-mode');
-        nightModeToggle.checked = true;
+      document.body.classList.add('dark-mode');
+      nightModeToggle.checked = true;
     }
 
     nightModeToggle.onchange = (e) => {
-        if (e.target.checked) {
-            document.body.classList.add('dark-mode');
-            localStorage.setItem('nightMode', 'true');
-        } else {
-            document.body.classList.remove('dark-mode');
-            localStorage.setItem('nightMode', 'false');
-        }
+      document.body.classList.toggle('dark-mode', e.target.checked);
+      localStorage.setItem('nightMode', e.target.checked ? 'true' : 'false');
     };
 
-    // --- VOSK CAPTION LOGIC ---
+    // --- TRANSPARENT MODE ---
+    const transparentBtn = document.getElementById('transparent-btn');
+    const tempBar = document.getElementById('temp-bar');
+    const revealBar = document.getElementById('reveal-bar');
+    let revealTimer = null;
+
+    function setTransparentMode(on) {
+      document.body.classList.toggle('transparent-mode', on);
+      localStorage.setItem('transparentMode', on ? 'true' : 'false');
+
+      // Update button active state and tooltip
+      if (on) {
+        transparentBtn.classList.add('active');
+        transparentBtn.title = 'Show Bar';
+      } else {
+        transparentBtn.classList.remove('active');
+        transparentBtn.title = 'Hide Bar';
+        tempBar.classList.remove('visible');
+      }
+    }
+
+    // Restore on load
+    if (localStorage.getItem('transparentMode') === 'true') {
+      setTransparentMode(true);
+    }
+
+    // Top-bar button click toggles transparent mode
+    transparentBtn.onclick = () => {
+      const isOn = document.body.classList.contains('transparent-mode');
+      setTransparentMode(!isOn);
+      // Close settings if open so effect is immediately visible
+      settingsWindow.style.display = 'none';
+      if (window.runtime && window.runtime.WindowSetSize) window.runtime.WindowSetSize(900, 140);
+    };
+
+    // Reveal bar on hover over the invisible strip at the top edge
+    revealBar.addEventListener('mouseenter', () => {
+      clearTimeout(revealTimer);
+      tempBar.classList.add('visible');
+    });
+
+    tempBar.addEventListener('mouseenter', () => {
+      clearTimeout(revealTimer);
+    });
+
+    tempBar.addEventListener('mouseleave', () => {
+      revealTimer = setTimeout(() => {
+        tempBar.classList.remove('visible');
+      }, 800);
+    });
+
+    revealBar.addEventListener('mouseleave', () => {
+      revealTimer = setTimeout(() => {
+        tempBar.classList.remove('visible');
+      }, 800);
+    });
+
+    // --- TEMP BAR — mirrors all top-bar buttons ---
+    // Settings
+    document.getElementById('temp-settings-btn').onclick = () => {
+      if (window.runtime && window.runtime.WindowSetSize) window.runtime.WindowSetSize(900, 520);
+      settingsWindow.style.display = 'flex';
+      tempBar.classList.remove('visible');
+    };
+
+    // Show bar (exit hidden-bar mode)
+    document.getElementById('temp-exit-btn').onclick = () => {
+      setTransparentMode(false);
+      tempBar.classList.remove('visible');
+    };
+
+    // Minimize & Close — delegate to same runtime calls
+    document.getElementById('temp-minimize-btn').onclick = () => window.runtime.WindowMinimise();
+    document.getElementById('temp-close-btn').onclick = () => window.runtime.Quit();
+
+    // --- CAPTION LOGIC ---
     window.runtime.EventsOn("caption", (data) => {
       let isFinal = data.startsWith("FINAL:");
       let rawText = data.replace("FINAL:", "").replace("PARTIAL:", "").trim();
@@ -384,72 +605,67 @@
       let combinedWords = permanentWords.concat(partialWords);
 
       if (hiddenWordCount >= combinedWords.length) {
-          hiddenWordCount = Math.max(0, combinedWords.length - 1);
+        hiddenWordCount = Math.max(0, combinedWords.length - 1);
       }
 
       function renderAndMeasure() {
-          let visibleWords = combinedWords.slice(hiddenWordCount);
-          captionEl.innerHTML = visibleWords.map(w => `<span>${w} </span>`).join('');
+        let visibleWords = combinedWords.slice(hiddenWordCount);
+        captionEl.innerHTML = visibleWords.map(w => `<span>${w} </span>`).join('');
 
-          if (captionEl.scrollHeight > captionEl.clientHeight + 2 && visibleWords.length > 0) {
-              let spans = captionEl.getElementsByTagName('span');
-              if (spans.length > 0) {
-                  let firstTop = spans[0].offsetTop;
-                  let cutIndex = -1;
-                  
-                  for (let i = 1; i < spans.length; i++) {
-                      if (spans[i].offsetTop > firstTop + 5) { 
-                          cutIndex = i;
-                          break;
-                      }
-                  }
-                  
-                  if (cutIndex > 0) {
-                      hiddenWordCount += cutIndex;
-                      renderAndMeasure(); 
-                  } else {
-                      hiddenWordCount++;
-                      renderAndMeasure();
-                  }
-              }
+        if (captionEl.scrollHeight > captionEl.clientHeight + 2 && visibleWords.length > 0) {
+          let spans = captionEl.getElementsByTagName('span');
+          if (spans.length > 0) {
+            let firstTop = spans[0].offsetTop;
+            let cutIndex = -1;
+            for (let i = 1; i < spans.length; i++) {
+              if (spans[i].offsetTop > firstTop + 5) { cutIndex = i; break; }
+            }
+            if (cutIndex > 0) {
+              hiddenWordCount += cutIndex;
+            } else {
+              hiddenWordCount++;
+            }
+            renderAndMeasure();
           }
+        }
       }
 
       renderAndMeasure();
 
       if (isFinal) {
-         permanentWords = permanentWords.concat(partialWords);
-         
-         if (permanentWords.length > 500) {
-             let trimCount = permanentWords.length - 200;
-             permanentWords = permanentWords.slice(trimCount);
-             hiddenWordCount = Math.max(0, hiddenWordCount - trimCount);
-         }
-
-         if (isRecording) {
-           transcriptBuffer += rawText + "\n";
-         }
+        permanentWords = permanentWords.concat(partialWords);
+        if (permanentWords.length > 500) {
+          let trimCount = permanentWords.length - 200;
+          permanentWords = permanentWords.slice(trimCount);
+          hiddenWordCount = Math.max(0, hiddenWordCount - trimCount);
+        }
+        if (isRecording) {
+          transcriptBuffer += rawText + "\n";
+        }
       }
     });
 
-    // --- RECORDING LOGIC ---
+    // --- RECORDING ---
     const recordBtn = document.getElementById('record-btn');
     const recordIcon = document.getElementById('record-icon');
 
     recordBtn.onclick = () => {
       isRecording = !isRecording;
       if (isRecording) {
-        transcriptBuffer = ""; 
+        transcriptBuffer = "";
         recordIcon.setAttribute("fill", "#ff4444");
         recordIcon.setAttribute("stroke", "#ff4444");
+        tempRecordIcon.setAttribute("fill", "#ff4444");
+        tempRecordIcon.setAttribute("stroke", "#ff4444");
         recordBtn.title = "Stop & Save Transcription";
       } else {
         recordIcon.setAttribute("fill", "none");
         recordIcon.setAttribute("stroke", "currentColor");
+        tempRecordIcon.setAttribute("fill", "none");
+        tempRecordIcon.setAttribute("stroke", "currentColor");
         recordBtn.title = "Start Transcription";
-        
         if (transcriptBuffer.trim() !== "") {
-           window.runtime.EventsEmit("save_transcript", saveFolder, transcriptBuffer.trim());
+          window.runtime.EventsEmit("save_transcript", saveFolder, transcriptBuffer.trim());
         }
       }
     };
@@ -458,19 +674,77 @@
     const settingsWindow = document.getElementById('settings-window');
 
     document.getElementById('settings-btn').onclick = () => {
-      if (window.runtime && window.runtime.WindowSetSize) window.runtime.WindowSetSize(900, 450); 
+      if (window.runtime && window.runtime.WindowSetSize) window.runtime.WindowSetSize(900, 520);
       settingsWindow.style.display = 'flex';
     };
 
     document.getElementById('close-settings-btn').onclick = () => {
       settingsWindow.style.display = 'none';
-      if (window.runtime && window.runtime.WindowSetSize) window.runtime.WindowSetSize(900, 140); // Snaps back to new default height
+      if (window.runtime && window.runtime.WindowSetSize) window.runtime.WindowSetSize(900, 140);
     };
 
     document.getElementById('font-size').oninput = (e) => {
       captionEl.style.fontSize = e.target.value + 'px';
       document.getElementById('font-size-val').textContent = e.target.value;
     };
+
+    // --- MICROPHONE ---
+    // Temp bar icon refs (needed before micBtn.onclick for inline sync)
+    const tempMicIcon = document.getElementById('temp-mic-icon');
+    const tempRecordIcon = document.getElementById('temp-record-icon');
+    document.getElementById('temp-mic-btn').onclick = () => micBtn.click();
+    document.getElementById('temp-record-btn').onclick = () => recordBtn.click();
+
+    const micBtn = document.getElementById('mic-btn');
+    const micIcon = document.getElementById('mic-icon');
+    const micSelect = document.getElementById('mic-select');
+    let useMic = false;
+    let selectedMicIndex = -1;
+
+    async function loadMicrophones() {
+      if (window.go && window.go.overlay && window.go.overlay.App) {
+        try {
+          const mics = await window.go.overlay.App.GetMicrophones();
+          micSelect.innerHTML = '<option value="-1">System Default Microphone</option>';
+          if (mics && mics.length > 0) {
+            mics.forEach(m => {
+              let opt = document.createElement('option');
+              opt.value = m.index;
+              opt.textContent = m.name;
+              micSelect.appendChild(opt);
+            });
+          }
+        } catch (e) {
+          console.error("Failed to load microphones:", e);
+        }
+      }
+    }
+
+    micBtn.onclick = () => {
+      useMic = !useMic;
+      if (useMic) {
+        micIcon.style.color = "#0078d4";
+        tempMicIcon.style.color = "#0078d4";
+        micBtn.title = "Switch back to Computer Audio";
+        window.go.overlay.App.SwitchAudioSource(true, selectedMicIndex).catch(err => alert("Error starting mic: " + err));
+        captionEl.textContent = "Listening to Microphone...";
+      } else {
+        micIcon.style.color = "";
+        tempMicIcon.style.color = "";
+        micBtn.title = "Switch to Microphone";
+        window.go.overlay.App.SwitchAudioSource(false, -1).catch(err => alert("Error starting loopback: " + err));
+        captionEl.textContent = "Listening to Computer Audio...";
+      }
+    };
+
+    micSelect.onchange = (e) => {
+      selectedMicIndex = parseInt(e.target.value);
+      if (useMic) {
+        window.go.overlay.App.SwitchAudioSource(true, selectedMicIndex).catch(err => alert("Error switching mic: " + err));
+      }
+    };
+
+    setTimeout(loadMicrophones, 1000);
 
     // Window controls
     document.getElementById('minimize-btn').onclick = () => window.runtime.WindowMinimise();

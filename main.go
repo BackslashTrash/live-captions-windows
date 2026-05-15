@@ -108,7 +108,7 @@ func changeModel(modelPath string) error {
 func getModelsDir() string {
 	configDir, err := os.UserConfigDir() // Gets C:\Users\YourName\AppData\Roaming
 	if err != nil {
-		return "models" 
+		return "models"
 	}
 	return filepath.Join(configDir, "LiveCaptions", "models")
 }
@@ -151,7 +151,7 @@ func downloadAndExtract(lang string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	out, err := os.Create(zipPath)
 	if err != nil {
 		resp.Body.Close()
@@ -161,12 +161,12 @@ func downloadAndExtract(lang string) error {
 	writer := &progressWriter{total: uint64(resp.ContentLength)}
 	_, err = io.Copy(out, io.TeeReader(resp.Body, writer))
 	out.Close()
-	resp.Body.Close() 
+	resp.Body.Close()
 	if err != nil {
 		return err
 	}
 
-	runtime.EventsEmit(appCtx, "download_progress", 100) 
+	runtime.EventsEmit(appCtx, "download_progress", 100)
 	err = extractZip(zipPath, modelsDir)
 	if err != nil {
 		return err
@@ -178,12 +178,21 @@ func downloadAndExtract(lang string) error {
 
 func main() {
 	vosk.SetLogLevel(-1)
-	app := &overlay.App{}
-	audioQueue := make(chan []float32, 50)
 
-	if err := audio.StartLoopback(audioQueue); err != nil {
-		log.Fatal("Failed to start audio capture:", err)
+	// --- NEW AUDIO MANAGER INIT ---
+	audioQueue := make(chan []float32, 50)
+	audioManager, err := audio.NewManager(audioQueue)
+	if err != nil {
+		log.Fatal("Failed to initialize audio manager:", err)
 	}
+
+	// Start loopback by default on app launch
+	if err := audioManager.SwitchSource(false, -1); err != nil {
+		log.Println("Warning: Failed to start audio loopback initially:", err)
+	}
+
+	app := overlay.NewApp(audioManager)
+	// ------------------------------
 
 	go func() {
 		for chunk := range audioQueue {
@@ -214,7 +223,7 @@ func main() {
 		}
 	}()
 
-	err := wails.Run(&options.App{
+	err = wails.Run(&options.App{
 		Title:            "Live Captions",
 		Width:            900,
 		Height:           140,
@@ -257,8 +266,10 @@ func main() {
 					lang := optionalData[0].(string)
 					go func() {
 						info, exists := voskModels[lang]
-						if !exists { return }
-						
+						if !exists {
+							return
+						}
+
 						modelPath := filepath.Join(getModelsDir(), info.Folder)
 
 						if _, err := os.Stat(modelPath); os.IsNotExist(err) {
@@ -282,28 +293,26 @@ func main() {
 
 			runtime.EventsOn(ctx, "save_transcript", func(optionalData ...interface{}) {
 				if len(optionalData) >= 2 {
-					// 1. Safe Type Assertion: Prevents silent crashes if the frontend sends null
 					folderPath, ok1 := optionalData[0].(string)
 					content, ok2 := optionalData[1].(string)
-					
+
 					if !ok1 || !ok2 {
 						runtime.LogErrorf(ctx, "Save Error: Frontend sent invalid data types.")
 						return
 					}
-					
+
 					if folderPath == "" {
 						docs, err := os.UserHomeDir()
 						if err == nil {
 							folderPath = filepath.Join(docs, "Documents", "Transcriptions")
 						} else {
-							folderPath = "Transcriptions" 
+							folderPath = "Transcriptions"
 						}
 					}
 
 					currentTime := time.Now().Format("2006-01-02_15-04-05")
 					fullPath := filepath.Join(folderPath, "Transcription_"+currentTime+".txt")
-					
-					// 2. Catch and display directory creation errors
+
 					err := os.MkdirAll(folderPath, os.ModePerm)
 					if err != nil {
 						runtime.MessageDialog(ctx, runtime.MessageDialogOptions{
@@ -313,8 +322,7 @@ func main() {
 						})
 						return
 					}
-					
-					// 3. Catch and display file writing errors
+
 					err = os.WriteFile(fullPath, []byte(content), 0644)
 					if err != nil {
 						runtime.MessageDialog(ctx, runtime.MessageDialogOptions{
@@ -347,9 +355,10 @@ func main() {
 
 			runtime.EventsOn(ctx, "transcribe_audio_file", func(optionalData ...interface{}) {
 				go func() {
-					if len(optionalData) == 0 { return }
-					
-					// Safe Type Assertion
+					if len(optionalData) == 0 {
+						return
+					}
+
 					audioPath, ok := optionalData[0].(string)
 					if !ok {
 						runtime.EventsEmit(ctx, "file_transcribe_error", "Invalid file path sent from frontend.")
@@ -413,19 +422,17 @@ func main() {
 					if err == nil {
 						folderPath = filepath.Join(docs, "Documents", "Transcriptions")
 					}
-					
-					// Catch Folder Errors
+
 					if err := os.MkdirAll(folderPath, os.ModePerm); err != nil {
-						runtime.EventsEmit(ctx, "file_transcribe_error", "Could not access save folder: " + err.Error())
+						runtime.EventsEmit(ctx, "file_transcribe_error", "Could not access save folder: "+err.Error())
 						return
 					}
-					
+
 					currentTime := time.Now().Format("2006-01-02_15-04-05")
 					filename := filepath.Join(folderPath, "File_Transcription_"+currentTime+".txt")
-					
-					// Catch File Write Errors
+
 					if err := os.WriteFile(filename, []byte(fullTranscript), 0644); err != nil {
-						runtime.EventsEmit(ctx, "file_transcribe_error", "Windows blocked the save: " + err.Error())
+						runtime.EventsEmit(ctx, "file_transcribe_error", "Windows blocked the save: "+err.Error())
 						return
 					}
 
