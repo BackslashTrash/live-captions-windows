@@ -356,78 +356,224 @@
     body.dark-mode #temp-bar button:hover { background: rgba(255,255,255,0.12); color: white; }
 
     /* ===================== SETTINGS MENU ===================== */
-    #settings-window {
-      position: absolute;
-      top: 140px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 650px;
-      max-height: calc(100vh - 160px);
-      overflow-y: auto;
-      background: rgba(245, 245, 245, 0.98);
-      border-radius: 12px;
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      box-shadow: 0 16px 40px rgba(0,0,0,0.2);
+    /* ===================== SETTINGS DRAWER ===================== */
+    /* Backdrop — full viewport, click-away to close */
+    #settings-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
       display: none;
-      flex-direction: column;
-      color: #000;
-      z-index: 100;
+      background: rgba(0, 0, 0, 0.08);
     }
 
+    #settings-backdrop.open { display: block; }
+
+    /* Drawer panel — slides in from the right edge */
+    #settings-window {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 380px;
+      z-index: 210;
+      background: rgba(246, 246, 248, 0.99);
+      border-left: 1px solid rgba(0, 0, 0, 0.09);
+      box-shadow: -8px 0 32px rgba(0, 0, 0, 0.12);
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+    }
+
+    #settings-window.open { transform: translateX(0); }
+
     .settings-header {
-      padding: 12px 20px;
-      background: rgba(0, 0, 0, 0.05);
-      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-      border-top-left-radius: 12px;
-      border-top-right-radius: 12px;
+      padding: 14px 18px 13px;
+      background: rgba(0, 0, 0, 0.03);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.07);
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-weight: 600;
-      position: sticky;
-      top: 0;
-      z-index: 2;
+      font-size: 14px;
+      flex-shrink: 0;
     }
 
-    .settings-header button { color: #666; font-size: 16px; }
-    .settings-header button:hover { color: #000; background: none; }
+    .settings-header button {
+      color: #666;
+      font-size: 15px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .settings-header button:hover { color: #000; background: rgba(0,0,0,0.06); border-radius: 4px; }
 
     .settings-body {
-      padding: 24px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .setting-card {
-      background: rgba(255, 255, 255, 0.7);
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      border-radius: 8px;
       padding: 16px;
       display: flex;
       flex-direction: column;
       gap: 12px;
+      overflow-y: auto;
+      flex: 1;
     }
 
-    .setting-card label { font-size: 14px; color: #444; font-weight: 600; }
+    .settings-body::-webkit-scrollbar { width: 4px; }
+    .settings-body::-webkit-scrollbar-track { background: transparent; }
+    .settings-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
+
+    .setting-card {
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .setting-card label {
+      font-size: 12px;
+      color: rgba(0,0,0,0.45);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
     .setting-card input[type="range"] { width: 100%; cursor: pointer; }
 
-    #save-folder { width: 100%; background: #fff; border: 1px solid #ccc; color: #000; padding: 8px 10px; border-radius: 4px; font-size: 13px; outline: none; }
-    #save-folder:focus { border-color: #0078d4; }
-
-    select {
-      background: #fff; border: 1px solid #ccc; color: #000; padding: 6px 10px; border-radius: 4px; font-size: 14px; width: 100%; cursor: pointer; outline: none;
+    /* Save folder row — input + browse button */
+    .folder-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
     }
 
-    #download-progress-container { display: none; flex-direction: column; gap: 6px; margin-top: 4px; }
+    #save-folder {
+      flex: 1;
+      min-width: 0;
+      background: rgba(0,0,0,0.04);
+      border: 1px solid rgba(0,0,0,0.1);
+      color: #000;
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      outline: none;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    #save-folder:focus { border-color: #0078d4; background: #fff; }
+    #save-folder::placeholder { color: rgba(0,0,0,0.3); }
+
+    #browse-btn {
+      flex-shrink: 0;
+      padding: 7px 12px;
+      background: rgba(0,0,0,0.06);
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.7);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    #browse-btn:hover { background: rgba(0,0,0,0.1); color: #000; }
+
+    select {
+      background: rgba(0,0,0,0.04);
+      border: 1px solid rgba(0,0,0,0.1);
+      color: #000;
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      width: 100%;
+      cursor: pointer;
+      outline: none;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+
+    #download-progress-container { display: none; flex-direction: column; gap: 6px; margin-top: 2px; }
     #download-text { font-size: 12px; color: #0078d4; font-weight: 600; }
-    .progress-track { width: 100%; height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden; }
+    .progress-track { width: 100%; height: 5px; background: rgba(0,0,0,0.08); border-radius: 3px; overflow: hidden; }
     #download-bar { width: 0%; height: 100%; background: #0078d4; transition: width 0.2s; }
 
     /* Toggle switch style */
     .toggle-row { display: flex; align-items: center; gap: 10px; }
-    .toggle-row input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
-    .toggle-row span { font-size: 14px; font-weight: 500; }
+    .toggle-row input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: #0078d4; }
+    .toggle-row span { font-size: 13px; font-weight: 500; color: rgba(0,0,0,0.75); }
+
+    /* File transcribe section */
+    .transcribe-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+    #upload-audio-btn {
+      padding: 7px 14px;
+      background: #0078d4;
+      color: white;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 12px;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    #upload-audio-btn:hover { background: #006cbf; }
+    #upload-audio-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    #file-transcribe-status {
+      font-size: 12px;
+      color: rgba(0,0,0,0.5);
+      font-weight: 500;
+      flex: 1;
+      min-width: 0;
+      word-break: break-all;
+    }
+
+    /* ===================== NIGHT MODE — SETTINGS ===================== */
+    body.dark-mode #settings-window {
+      background: rgba(22, 22, 24, 0.99);
+      border-left: 1px solid rgba(255,255,255,0.07);
+      box-shadow: -8px 0 32px rgba(0,0,0,0.5);
+    }
+    body.dark-mode .settings-header {
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      color: #fff;
+    }
+    body.dark-mode .settings-header button { color: rgba(255,255,255,0.5); }
+    body.dark-mode .settings-header button:hover { color: #fff; background: rgba(255,255,255,0.08); }
+    body.dark-mode .setting-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    body.dark-mode .setting-card label { color: rgba(255,255,255,0.35); }
+    body.dark-mode .toggle-row span { color: rgba(255,255,255,0.7); }
+    body.dark-mode #save-folder {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+    body.dark-mode #save-folder:focus { border-color: #4daafc; background: rgba(255,255,255,0.08); }
+    body.dark-mode #save-folder::placeholder { color: rgba(255,255,255,0.2); }
+    body.dark-mode #browse-btn {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.7);
+    }
+    body.dark-mode #browse-btn:hover { background: rgba(255,255,255,0.13); color: #fff; }
+    body.dark-mode select {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+    body.dark-mode select option { background: #1c1c1e; color: #fff; }
+    body.dark-mode .settings-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
+    body.dark-mode .progress-track { background: rgba(255,255,255,0.08); }
+    body.dark-mode #download-text { color: #4daafc; }
+    body.dark-mode #download-bar { background: #4daafc; }
+    body.dark-mode #file-transcribe-status { color: rgba(255,255,255,0.4) !important; }
+    body.dark-mode #upload-audio-btn { background: #0078d4; }
+    body.dark-mode #upload-audio-btn:hover { background: #1a8ae0; }
 
     /* ===================== NIGHT MODE ===================== */
     body.dark-mode #widget-container { background: rgba(15, 15, 15, 0.85); }
@@ -438,22 +584,6 @@
     body.dark-mode #transparent-btn.active { color: #4daafc; background: rgba(77, 170, 252, 0.15); }
     body.dark-mode #transparent-btn.active:hover { background: rgba(77, 170, 252, 0.25); }
     body.dark-mode #caption { color: #ffffff; text-shadow: 0 1px 4px rgba(0,0,0,0.5), 0 0 12px rgba(0,0,0,0.3); }
-
-    body.dark-mode #settings-window { background: rgba(30, 30, 30, 0.98); border: 1px solid rgba(255, 255, 255, 0.15); color: white; box-shadow: 0 16px 40px rgba(0,0,0,0.6); }
-    body.dark-mode .settings-header { background: rgba(255, 255, 255, 0.05); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-    body.dark-mode .settings-header button { color: #ccc; }
-    body.dark-mode .settings-header button:hover { color: white; }
-    body.dark-mode .setting-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); }
-    body.dark-mode .setting-card label { color: #cccccc; }
-    body.dark-mode #save-folder { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white; }
-    body.dark-mode #save-folder:focus { border-color: #4daafc; }
-    body.dark-mode select { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white; }
-    body.dark-mode select option { background: #1e1e1e; color: white; }
-    body.dark-mode .progress-track { background: rgba(255,255,255,0.1); }
-    body.dark-mode #download-text { color: #4daafc; }
-    body.dark-mode #download-bar { background: #4daafc; }
-    body.dark-mode #file-transcribe-status { color: #cccccc !important; }
-    body.dark-mode .toggle-row span { color: #ccc; }
 
     /* ===================== ONBOARDING OVERLAY ===================== */
     #onboarding-overlay {
@@ -858,16 +988,20 @@
     </div>
   </div>
 
-  <div id="settings-window">
+  <!-- ===================== SETTINGS DRAWER ===================== -->
+  <!-- Backdrop: click-away closes drawer -->
+  <div id="settings-backdrop"></div>
+
+  <div id="settings-window" role="dialog" aria-modal="true" aria-label="Settings">
     <div class="settings-header">
       <span>Settings</span>
-      <button type="button" id="close-settings-btn" title="Close Settings">✖</button>
+      <button type="button" id="close-settings-btn" title="Close Settings">✕</button>
     </div>
 
     <div class="settings-body">
 
-      <div class="setting-card" style="grid-column: span 2;">
-        <label>Transcription Language</label>
+      <div class="setting-card">
+        <label for="language-select">Transcription Language</label>
         <select id="language-select">
           <option value="English">English</option>
           <option value="Spanish">Spanish</option>
@@ -888,8 +1022,8 @@
         </div>
       </div>
 
-      <div class="setting-card" style="grid-column: span 2;">
-        <label>Microphone Input Device</label>
+      <div class="setting-card">
+        <label for="mic-select">Microphone Input Device</label>
         <select id="mic-select">
           <option value="-1">System Default Microphone</option>
         </select>
@@ -904,20 +1038,23 @@
       </div>
 
       <div class="setting-card">
-        <label>Caption Font Size (<span id="font-size-val">24</span>px)</label>
+        <label for="font-size">Caption Font Size (<span id="font-size-val">24</span>px)</label>
         <input type="range" id="font-size" min="16" max="40" value="24">
       </div>
 
-      <div class="setting-card" style="grid-column: span 2;">
-        <label>Transcription Save Folder Path</label>
-        <input type="text" id="save-folder" placeholder="Leave blank to use default: Documents/Transcriptions">
+      <div class="setting-card">
+        <label>Transcription Save Folder</label>
+        <div class="folder-row">
+          <input type="text" id="save-folder" placeholder="Default: Documents/Transcriptions">
+          <button type="button" id="browse-btn">Browse…</button>
+        </div>
       </div>
 
-      <div class="setting-card" style="grid-column: span 2;">
+      <div class="setting-card">
         <label>Transcribe Audio File</label>
-        <div style="display: flex; gap: 12px; align-items: center;">
-          <button type="button" id="upload-audio-btn" style="padding: 8px 16px; background: #0078d4; color: white; border-radius: 6px; font-weight: 600; font-size: 13px;">Upload Audio (.mp3, .wav, .m4a)</button>
-          <span id="file-transcribe-status" style="font-size: 13px; color: #666; font-weight: 500;">Ready</span>
+        <div class="transcribe-row">
+          <button type="button" id="upload-audio-btn">Upload Audio (.mp3, .wav, .m4a)</button>
+          <span id="file-transcribe-status">Ready</span>
         </div>
       </div>
 
@@ -958,9 +1095,17 @@
         obOverlay.classList.add('fade-out');
         setTimeout(() => {
           obOverlay.style.display = 'none';
-          // Shrink the window back to caption-bar height now that overlay is gone
           if (window.runtime && window.runtime.WindowSetSize) {
             window.runtime.WindowSetSize(900, 140);
+          }
+          // After shrinking to caption height, move to bottom of screen
+          // so the overlay sits where users expect a caption bar to live.
+          if (window.go && window.go.overlay && window.go.overlay.App) {
+            window.go.overlay.App.MoveToBottom(
+              140,
+              window.screen.availTop || 0,
+              window.screen.availHeight
+            );
           }
         }, 450);
       }, 900);
@@ -1034,8 +1179,17 @@
     window.runtime.EventsOn("resize_window", (targetHeight) => {
       if (obOverlay.style.display === 'none') {
         window.runtime.WindowSetSize(900, targetHeight);
+        // Move to bottom for returning users whose model loaded before
+        // the 300ms grace timer fired (overlay never shown).
+        if (window.go && window.go.overlay && window.go.overlay.App) {
+          window.go.overlay.App.MoveToBottom(
+            targetHeight,
+            window.screen.availTop || 0,
+            window.screen.availHeight
+          );
+        }
       }
-      // else: dismissOnboarding() will call WindowSetSize after its fade
+      // else: dismissOnboarding() handles both resize and reposition
     });
 
     // --- LANGUAGE ---
@@ -1242,7 +1396,8 @@
     const historyScroll  = document.getElementById('history-scroll');
     const historyBtn     = document.getElementById('history-btn');
     const tempHistoryBtn = document.getElementById('temp-history-btn');
-    const settingsWindow = document.getElementById('settings-window');
+    const settingsWindow  = document.getElementById('settings-window');
+    const settingsBackdrop = document.getElementById('settings-backdrop');
 
     // (historyOpen, settingsOpen, historyWasOpen, historyLines hoisted to top-level above)
 
@@ -1286,22 +1441,53 @@
       if (historyOpen) {
         historyPanel.classList.remove('open');
         setHistoryButtonActive(false);
-        // don't flip historyOpen flag — historyWasOpen already captured it
       }
       settingsOpen = true;
-      settingsWindow.style.display = 'flex';
-      applyWindowSize(SETTINGS_H);
+      settingsBackdrop.classList.add('open');
+      settingsWindow.classList.add('open');
+      // EnsureSettingsVisible: Go reads current window Y position, we supply
+      // the screen available area from the WebView (accurate for the current monitor),
+      // Go shifts the window up if needed then resizes — all before the drawer animates in.
+      if (window.go && window.go.overlay && window.go.overlay.App) {
+        const screenTop   = window.screen.availTop  || 0;
+        const screenAvailH = window.screen.availHeight;
+        window.go.overlay.App.EnsureSettingsVisible(SETTINGS_H, screenTop, screenAvailH).catch(() => {
+          applyWindowSize(SETTINGS_H);
+        });
+      } else {
+        applyWindowSize(SETTINGS_H);
+      }
+      // Load microphones now (not on a global timeout) so the list is
+      // always fresh when the user opens settings
+      loadMicrophones();
     }
 
     function closeSettings() {
       settingsOpen = false;
-      settingsWindow.style.display = 'none';
+      settingsWindow.classList.remove('open');
+      settingsBackdrop.classList.remove('open');
+
+      // Always restore original Y position first, then decide on height.
+      const doRestore = (targetH) => {
+        if (window.go && window.go.overlay && window.go.overlay.App) {
+          window.go.overlay.App.RestorePosition(targetH);
+        } else {
+          applyWindowSize(targetH);
+        }
+      };
+
       if (historyWasOpen) {
-        // Restore history — reopen it properly
-        historyOpen = false; // let openHistory() set it
-        openHistory();
+        historyOpen = false;
+        // Restore to history height (caption + panel) at the original position
+        doRestore(CAPTION_H + HISTORY_H);
+        // Re-add the history panel CSS state without triggering another WindowSetSize
+        historyPanel.style.top = CAPTION_H + 'px';
+        historyPanel.classList.add('open');
+        setHistoryButtonActive(true);
+        historyOpen = true;
+        scrollHistoryToBottom();
       } else {
-        applyWindowSize(CAPTION_H);
+        doRestore(CAPTION_H);
       }
     }
 
@@ -1332,6 +1518,31 @@
     // ===================== SETTINGS =====================
     document.getElementById('settings-btn').onclick      = openSettings;
     document.getElementById('close-settings-btn').onclick = closeSettings;
+
+    // Click-away on backdrop closes drawer
+    settingsBackdrop.addEventListener('click', closeSettings);
+
+    // Escape key closes settings (or history)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (settingsOpen) closeSettings();
+        else if (historyOpen) setHistoryOpen(false);
+      }
+    });
+
+    // Browse button — native folder picker via Wails bound method
+    document.getElementById('browse-btn').addEventListener('click', async () => {
+      try {
+        const path = await window.go.overlay.App.SelectFolder();
+        if (path) {
+          saveFolder = path;
+          document.getElementById('save-folder').value = path;
+          localStorage.setItem('transcriptFolder', path);
+        }
+      } catch (e) {
+        showToast('Could not open folder picker: ' + e, true);
+      }
+    });
 
     document.getElementById('font-size').oninput = (e) => {
       captionEl.style.fontSize = e.target.value + 'px';
@@ -1577,7 +1788,8 @@
       }
     };
 
-    setTimeout(loadMicrophones, 1000);
+    // Microphones are loaded on-demand when settings opens (see openSettings),
+    // ensuring the list is always fresh and never empty on first open.
 
     // Window controls
     document.getElementById('minimize-btn').onclick = () => window.runtime.WindowMinimise();
